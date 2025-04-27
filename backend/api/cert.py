@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Query
-from services.cert_service import generate_ca_cert, generate_domain_cert, list_certs, download_cert, delete_cert, clear_all_certs
+from fastapi import APIRouter, Query, File, UploadFile, Form
+from services.cert_service import generate_ca_cert, generate_domain_cert, list_certs, download_cert, delete_cert, upload_cert
 
 router = APIRouter()
 
@@ -23,6 +23,7 @@ def download(domain: str = Query(...), type: str = Query(...)):
 def delete(domain: str = Query(...)):
     return delete_cert(domain)
 
-@router.delete("/clear")
-def clear():
-    return clear_all_certs()
+@router.post("/upload")
+async def upload_cert_api(file: UploadFile = File(...), key: UploadFile = File(...), name: str = Form(None)):
+    from services.cert_service import upload_cert
+    return await upload_cert(file, key, name)

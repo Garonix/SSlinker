@@ -1,5 +1,6 @@
 import os
 import subprocess
+import shutil
 
 def generate_ca_cert():
     ca_dir = '/certs'
@@ -66,9 +67,37 @@ def generate_domain_cert(domain, ip=None):
     except Exception as e:
         return {"success": False, "message": f"生成失败: {e}"}
 
+async def upload_cert(file, key, name=None):
+    upload_dir = '/certs/uploads'
+    os.makedirs(upload_dir, exist_ok=True)
+    # 证书
+    cert_filename = file.filename
+    if not (cert_filename.endswith('.crt') or cert_filename.endswith('.pem') or cert_filename.endswith('.cer')):
+        return {"success": False, "message": "只允许crt/pem/cer证书文件"}
+    # 证书名称（优先用name，否则用文件名去后缀）
+    base_name = name.strip() if name else os.path.splitext(cert_filename)[0]
+    # 文件保存名：名称+后缀
+    cert_save_path = os.path.join(upload_dir, base_name + os.path.splitext(cert_filename)[1])
+    # 私钥
+    key_filename = key.filename
+    if not key_filename.endswith('.key'):
+        return {"success": False, "message": "只允许.key私钥文件"}
+    key_save_path = os.path.join(upload_dir, base_name + '.key')
+    try:
+        with open(cert_save_path, "wb") as buffer:
+            import shutil
+            shutil.copyfileobj(file.file, buffer)
+        with open(key_save_path, "wb") as buffer:
+            import shutil
+            shutil.copyfileobj(key.file, buffer)
+        return {"success": True, "message": "上传成功"}
+    except Exception as e:
+        return {"success": False, "message": f"上传失败: {e}"}
+
 def list_certs():
     cert_dir = '/certs'
     certs = []
+    # 普通/CA证书
     for f in os.listdir(cert_dir):
         if f.endswith('.crt'):
             name = f[:-4]
@@ -77,9 +106,25 @@ def list_certs():
                 "domain": name,
                 "type": "根证书" if name == 'SSLinker' else "域名证书",
                 "crt": f,
-                "key": f"{name}.key" if os.path.exists(key_path) else None
+                "key": f"{name}.key" if os.path.exists(key_path) else None,
+                "name": name  # 普通证书名称
             })
-    # 根证书排最前，其余按域名排序
+    # 其他证书（上传）
+    upload_dir = os.path.join(cert_dir, 'uploads')
+    if os.path.exists(upload_dir):
+        for f in os.listdir(upload_dir):
+            if f.endswith('.crt') or f.endswith('.pem') or f.endswith('.cer'):
+                base_name = os.path.splitext(f)[0]
+                key_file = os.path.join(upload_dir, base_name + '.key')
+                certs.append({
+                    "domain": f,
+                    "type": "其他证书",
+                    "crt": f,
+                    "uploaded": True,
+                    "path": os.path.join(upload_dir, f),
+                    "key": key_file if os.path.exists(key_file) else None,
+                    "name": base_name  # 展示证书名称
+                })
     certs = sorted(certs, key=lambda x: (x['type'] != '根证书', x['domain']))
     return {"certs": certs}
 
@@ -98,37 +143,30 @@ def download_cert(domain, type):
 
 def delete_cert(domain):
     cert_dir = '/certs'
-    crt_path = os.path.join(cert_dir, f'{domain}.crt')
-    key_path = os.path.join(cert_dir, f'{domain}.key')
-    crt_ok = True
-    key_ok = True
+    upload_dir = os.path.join(cert_dir, 'uploads')
+    # 优先删普通/CA证书
+    crt_path = os.path.join(cert_dir, domain + '.crt')
+    key_path = os.path.join(cert_dir, domain + '.key')
+    deleted = False
     if os.path.exists(crt_path):
-        try:
-            os.remove(crt_path)
-        except Exception:
-            crt_ok = False
+        os.remove(crt_path)
+        deleted = True
     if os.path.exists(key_path):
-        try:
-            os.remove(key_path)
-        except Exception:
-            key_ok = False
-    if crt_ok and key_ok:
-        return {"success": True}
+        os.remove(key_path)
+        deleted = True
+    # 如果普通目录没有，再删上传目录
+    for ext in ['.crt', '.pem', '.cer']:
+        up_crt_path = os.path.join(upload_dir, domain + ext)
+        if os.path.exists(up_crt_path):
+            os.remove(up_crt_path)
+            deleted = True
+    up_key_path = os.path.join(upload_dir, domain + '.key')
+    if os.path.exists(up_key_path):
+        os.remove(up_key_path)
+        deleted = True
+    if deleted:
+        return {"success": True, "message": "删除成功"}
     else:
-        return {"success": False, "message": "部分或全部文件删除失败"}
+        return {"success": False, "message": "未找到对应证书"}
 
-def clear_all_certs():
-    cert_dir = '/certs'
-    failed = []
-    if not os.path.exists(cert_dir):
-        return {"success": True, "message": "无证书可清空"}
-    for f in os.listdir(cert_dir):
-        if f.endswith('.crt') or f.endswith('.key') or f.endswith('.csr') or f.endswith('.srl'):
-            try:
-                os.remove(os.path.join(cert_dir, f))
-            except Exception:
-                failed.append(f)
-    if not failed:
-        return {"success": True}
-    else:
-        return {"success": False, "message": f"部分文件删除失败: {','.join(failed)}"}
+# 已移除clear_all_certs函数实现

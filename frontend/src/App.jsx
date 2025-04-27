@@ -10,7 +10,7 @@ function Navbar() {
   const navs = [
     { name: "首页", path: "/" },
     { name: "证书管理", path: "/cert" },
-    { name: "nginx配置", path: "/nginx" },
+    { name: "反向代理", path: "/nginx" },
     { name: "系统状态", path: "/status" },
   ];
   return (
