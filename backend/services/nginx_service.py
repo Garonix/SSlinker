@@ -17,7 +17,11 @@ def generate_nginx_config(cert_domain, server_name, proxy_pass):
         f.write(nginx_conf)
     print(f"[nginx配置生成] 写入文件: {config_path}")
     print(f"[nginx配置内容]\n{nginx_conf}")
-    return {"success": True, "config_path": config_path}
+    # 自动重载nginx
+    reload_result = reload_nginx()
+    if not reload_result.get('success'):
+        return {"success": False, "message": f"配置写入成功，但重载失败: {reload_result.get('message', '')}", "config_path": config_path}
+    return {"success": True, "config_path": config_path, "message": "配置写入并nginx已重载"}
 
 def list_nginx_configs():
     import os
@@ -57,12 +61,15 @@ def list_nginx_configs():
 def delete_nginx_config(domain):
     import os
     config_dir = '/etc/nginx/conf.d'
-    # 文件名直接用原始域名
     config_path = os.path.join(config_dir, f'{domain}.conf')
     if os.path.exists(config_path):
         try:
             os.remove(config_path)
-            return {"success": True, "message": f"已删除: {config_path}"}
+            # 自动重载nginx
+            reload_result = reload_nginx()
+            if not reload_result.get('success'):
+                return {"success": False, "message": f"配置删除成功，但重载失败: {reload_result.get('message', '')}"}
+            return {"success": True, "message": "配置删除并nginx已重载"}
         except Exception as e:
             return {"success": False, "message": f"删除失败: {e}"}
     else:

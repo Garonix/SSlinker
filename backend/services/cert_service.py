@@ -63,7 +63,7 @@ def generate_domain_cert(domain, ip=None):
             os.remove(csr_path)
         if os.path.exists(conf_path):
             os.remove(conf_path)
-        return {"success": True, "cert_path": crt_path, "key_path": key_path, "message": "域名证书生成成功（含SAN）"}
+        return {"success": True, "cert_path": crt_path, "key_path": key_path, "message": "域名证书生成成功"}
     except Exception as e:
         return {"success": False, "message": f"生成失败: {e}"}
 

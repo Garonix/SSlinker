@@ -12,6 +12,7 @@ export default function Nginx() {
   const [showForm, setShowForm] = useState(false);
   const [certList, setCertList] = useState([]);
   const [certLoading, setCertLoading] = useState(false);
+  const [selectedRows, setSelectedRows] = useState([]);
 
   // 获取证书列表（仅域名证书，不含CA）
   const fetchCertList = async () => {
@@ -50,7 +51,12 @@ export default function Nginx() {
   };
 
   const handleCreate = async () => {
-    if (!form.cert_domain || !form.server_name || !form.proxy_pass) {
+    // 普通证书自动赋值 server_name
+    let finalServerName = form.server_name;
+    if (selectedCertType === 'normal') {
+      finalServerName = form.cert_domain;
+    }
+    if (!form.cert_domain || !finalServerName || !form.proxy_pass) {
       toast.error('证书、服务标识和代理目标不能为空', { duration: TOAST_DURATION });
       return;
     }
@@ -68,7 +74,7 @@ export default function Nginx() {
       const res = await fetch('/api/nginx/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, proxy_pass: proxyPass })
+        body: JSON.stringify({ ...form, server_name: finalServerName, proxy_pass: proxyPass })
       });
       const data = await res.json();
       if (data.success) {
@@ -117,11 +123,69 @@ export default function Nginx() {
     setReloadLoading(false);
   };
 
+  // 判断证书类型
+  function getCertType(cert) {
+    if (cert.domain && cert.domain.startsWith('*.')) return 'wildcard';
+    if (cert.type === '其他证书' || cert.uploaded) return 'other';
+    return 'normal';
+  }
+
+  // 证书下拉选项，包含普通、泛域名、其他证书
+  const certOptions = certList.map(cert => ({
+    value: cert.domain,
+    label: cert.domain,
+    type: getCertType(cert),
+  }));
+
+  // 当前选中证书类型
+  const selectedCert = certList.find(c => c.domain === form.cert_domain);
+  const selectedCertType = selectedCert ? getCertType(selectedCert) : null;
+
+  // 是否显示服务标识输入框
+  const showServerNameInput = selectedCertType === 'wildcard' || selectedCertType === 'other';
+
+  // 编辑逻辑
+  function handleEdit(cfg) {
+    setForm({
+      cert_domain: cfg.cert_domain || cfg.domain || '',
+      server_name: cfg.server_name || cfg.domain || '',
+      proxy_pass: cfg.proxy_pass || ''
+    });
+    setShowForm(true);
+  }
+
+  // 勾选逻辑
+  const handleSelectRow = (domain) => {
+    setSelectedRows(prev =>
+      prev.includes(domain) ? prev.filter(d => d !== domain) : [...prev, domain]
+    );
+  };
+  const handleSelectAll = () => {
+    if (selectedRows.length === configs.length) {
+      setSelectedRows([]);
+    } else {
+      setSelectedRows(configs.map(cfg => cfg.domain));
+    }
+  };
+
+  // 操作按钮单独卡片
+  const handleRefresh = () => fetchConfigs();
+  const handleEditSelected = () => {
+    if (selectedRows.length === 1) {
+      const cfg = configs.find(cfg => cfg.domain === selectedRows[0]);
+      if (cfg) handleEdit(cfg);
+    }
+  };
+  const handleDeleteSelected = () => {
+    selectedRows.forEach(domain => handleDelete(domain));
+    setSelectedRows([]);
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-start bg-white pt-10 pb-2">
       <Toaster position="top-center" />
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lg px-6 py-2 mt-2">
-        <div className="w-full max-w-2xl mb-2">
+      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-lg px-6 py-2 mt-2">
+        <div className="w-full max-w-5xl mb-2">
           {/* 卡片风格 */}
           <div className="bg-green-50 rounded-xl shadow px-6 py-5 flex flex-col items-center mb-2">
             <div className="flex items-center mb-6">
@@ -153,111 +217,160 @@ export default function Nginx() {
               </button>
             </div>
           </div>
-          {showForm && (
-            <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-20">
-              <div className="bg-green-50 rounded-2xl p-8 shadow-xl w-full max-w-lg">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-2xl font-bold text-green-700 mb-0">nginx配置生成</h3>
-                  <button className="text-gray-400 hover:text-gray-700 text-xl font-bold" onClick={() => setShowForm(false)}>&times;</button>
+        </div>
+      </div>
+      {/* 列表和操作卡片并排 */}
+      <div className="w-full max-w-5xl flex flex-row gap-8 mt-8">
+        {/* 列表 */}
+        <div className="flex-1">
+          <div className="bg-white rounded-2xl shadow-lg px-6 py-8">
+            <div className="overflow-x-auto">
+              <table className="w-full text-base rounded-xl overflow-hidden">
+                <thead>
+                  <tr className="bg-green-100 text-green-700 text-lg">
+                    <th className="py-3 px-2 text-center w-12">
+                      <span className="inline-flex items-center justify-center">
+                        <input type="checkbox"
+                          id="cb-all"
+                          checked={selectedRows.length === configs.length && configs.length > 0}
+                          onChange={handleSelectAll}
+                          className="peer appearance-none h-5 w-5 border-2 border-green-500 rounded bg-white align-middle cursor-pointer transition"
+                        />
+                        <svg className="absolute pointer-events-none w-4 h-4 text-green-500" style={{display: selectedRows.length === configs.length && configs.length > 0 ? 'block' : 'none'}} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4 8-8" />
+                        </svg>
+                      </span>
+                    </th>
+                    <th className="py-3 px-4 text-left">服务标识</th>
+                    <th className="py-3 px-4 text-left">代理目标</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {listLoading ? (
+                    <tr>
+                      <td colSpan={3} className="text-gray-400 text-center py-6">加载中...</td>
+                    </tr>
+                  ) : configs.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="text-gray-400 text-center py-10 text-lg">暂无配置</td>
+                    </tr>
+                  ) : configs.map(cfg => (
+                    <tr key={cfg.domain} className="border-b last:border-none hover:bg-green-50 transition-all group">
+                      <td className="py-4 px-2 text-center">
+                        <span className="inline-flex items-center justify-center">
+                          <input
+                            type="checkbox"
+                            id={`row-cb-${cfg.domain}`}
+                            checked={selectedRows.includes(cfg.domain)}
+                            onChange={() => handleSelectRow(cfg.domain)}
+                            className="peer appearance-none h-5 w-5 border-2 border-green-500 rounded bg-white align-middle cursor-pointer transition"
+                          />
+                          <svg className="absolute pointer-events-none w-4 h-4 text-green-500" style={{display: selectedRows.includes(cfg.domain) ? 'block' : 'none'}} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4 8-8" />
+                          </svg>
+                        </span>
+                      </td>
+                      <td
+                        className="py-4 px-4 text-left font-mono text-green-900 text-lg cursor-pointer"
+                        onClick={() => window.open(`http://${cfg.domain}`, '_blank')}
+                        style={{ textDecoration: 'none' }}
+                      >
+                        {cfg.domain}
+                      </td>
+                      <td className="py-4 px-4 text-left font-mono text-blue-900 text-lg">{cfg.proxy_pass}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        {/* 操作按钮卡片 */}
+        <div className="w-40 flex-shrink-0">
+          <div className="bg-white rounded-2xl shadow-lg px-2 py-4 flex flex-col items-center justify-start">
+            <button
+              className="w-32 mb-4 px-3 py-2 rounded-full font-bold text-base shadow transition-all bg-blue-600 text-white hover:bg-blue-700"
+              onClick={handleRefresh}
+            >刷新</button>
+            <button
+              className={`w-32 mb-4 px-3 py-2 rounded-full font-bold text-base shadow transition-all ${selectedRows.length === 1 ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}
+              disabled={selectedRows.length !== 1}
+              onClick={handleEditSelected}
+            >编辑</button>
+            <button
+              className={`w-32 mb-4 px-3 py-2 rounded-full font-bold text-base shadow transition-all ${selectedRows.length > 0 ? 'bg-red-500 text-white hover:bg-red-700' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}
+              disabled={selectedRows.length === 0}
+              onClick={handleDeleteSelected}
+            >删除</button>
+            
+          </div>
+        </div>
+      </div>
+      {showForm && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-20">
+          <div className="bg-green-50 rounded-2xl p-8 shadow-xl border border-green-200 animate-fadein" style={{ minWidth: 0 }}>
+            <div className="flex flex-col items-center">
+              <h3 className="text-2xl font-bold text-green-700 mb-6 tracking-wide flex items-center w-[320px]">
+                <span className="mr-2">配置生成</span>
+                <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-lg border border-green-200 font-semibold">自定义</span>
+                <button className="ml-auto text-gray-400 hover:text-gray-700 text-2xl font-bold px-2" onClick={() => setShowForm(false)}>&times;</button>
+              </h3>
+              <form className="flex flex-col w-[320px]" onSubmit={e => { e.preventDefault(); handleCreate(); }}>
+                <div className="mb-5 text-left">
+                  <label className="block text-gray-700 font-semibold mb-2">选择证书 <span className="text-gray-400 text-sm">（必选）</span></label>
+                  <select
+                    name="cert_domain"
+                    value={form.cert_domain}
+                    onChange={handleInput}
+                    className="w-full px-3 py-2 rounded-lg border-2 border-green-200 focus:outline-none focus:border-green-400 bg-white text-base text-green-700 transition"
+                    disabled={certLoading || certList.length === 0}
+                  >
+                    <option value="">请选择证书</option>
+                    {certOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
                 </div>
-                <div className="w-full">
-                  <div className="mb-3 text-left">
-                    <label className="block text-green-600 mb-1">选择证书<span className="text-red-500">*</span></label>
-                    <select
-                      name="cert_domain"
-                      value={form.cert_domain}
-                      onChange={handleInput}
-                      className="w-full border px-3 py-2 rounded text-lg bg-white"
-                      disabled={certLoading || certList.length === 0}
-                    >
-                      <option value="">请选择证书</option>
-                      {certList.map(cert => (
-                        <option key={cert.domain} value={cert.domain}>{cert.domain}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="mb-3 text-left">
-                    <label className="block text-green-600 mb-1">服务标识（server_name）<span className="text-red-500">*</span></label>
+                {showServerNameInput && (
+                  <div className="mb-5 text-left">
+                    <label className="block text-gray-700 font-semibold mb-2">服务标识 <span className="text-gray-400 text-sm">（必填）</span></label>
                     <input
                       name="server_name"
                       value={form.server_name}
                       onChange={handleInput}
-                      className="w-full border px-3 py-2 rounded text-lg"
+                      className="w-full px-3 py-2 rounded-lg border-2 border-green-200 focus:outline-none focus:border-green-400 bg-white text-base text-green-700 transition"
                       placeholder="如 example.com、*.gezixa.com 或 192.168.1.1"
                     />
                   </div>
-                  <div className="mb-3 text-left">
-                    <label className="block text-green-600 mb-1">代理目标（proxy_pass）<span className="text-red-500">*</span></label>
-                    <input
-                      name="proxy_pass"
-                      value={form.proxy_pass}
-                      onChange={handleInput}
-                      className="w-full border px-3 py-2 rounded text-lg"
-                      placeholder="如 http://127.0.0.1:8080"
-                    />
-                  </div>
-                  <div className="flex justify-end gap-2 mt-6">
-                    <button
-                      className="px-4 py-1 rounded bg-gray-200 hover:bg-gray-300"
-                      onClick={() => setShowForm(false)}
-                      disabled={creating}
-                    >取消</button>
-                    <button
-                      className="px-6 py-1 rounded bg-green-600 text-white hover:bg-green-700 font-bold text-lg"
-                      onClick={handleCreate}
-                      disabled={creating || certList.length === 0}
-                    >{creating ? '生成中...' : '确定'}</button>
-                  </div>
+                )}
+                <div className="mb-5 text-left">
+                  <label className="block text-gray-700 font-semibold mb-2">代理目标 <span className="text-gray-400 text-sm">（必填）</span></label>
+                  <input
+                    name="proxy_pass"
+                    value={form.proxy_pass}
+                    onChange={handleInput}
+                    className="w-full px-3 py-2 rounded-lg border-2 border-green-200 focus:outline-none focus:border-green-400 bg-white text-base text-green-700 transition"
+                    placeholder="如 http://127.0.0.1:8080"
+                  />
                 </div>
-              </div>
+                <div className="flex justify-end gap-4 mt-8 w-full">
+                  <button type="button" className="px-5 py-2 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 font-semibold transition text-lg" onClick={() => setShowForm(false)} disabled={creating}>取消</button>
+                  <button
+                    type="submit"
+                    className={
+                      "px-7 py-2 rounded-full bg-green-600 text-white font-bold text-lg shadow-md " +
+                      (creating || !form.cert_domain || !form.proxy_pass || (showServerNameInput && !form.server_name)
+                        ? "opacity-60 cursor-not-allowed"
+                        : "hover:bg-green-700")
+                    }
+                    disabled={creating || !form.cert_domain || !form.proxy_pass || (showServerNameInput && !form.server_name)}
+                  >{creating ? '生成中...' : '确定'}</button>
+                </div>
+              </form>
             </div>
-          )}
+          </div>
         </div>
-      </div>
-      {/* 卡片间距加大 */}
-      <div className="h-8" />
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lg px-6 py-8 mt-2">
-        <div className="overflow-x-auto">
-          <table className="w-full text-base rounded-xl overflow-hidden">
-            <thead>
-              <tr className="bg-gradient-to-r from-green-50 to-green-100 text-green-700">
-                <th className="py-4 px-4 font-bold text-lg text-left tracking-wide">服务标识</th>
-                <th className="py-4 px-4 font-bold text-lg text-left tracking-wide">代理目标</th>
-                <th className="py-4 px-4 font-bold text-lg text-center tracking-wide">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {listLoading ? (
-                <tr>
-                  <td colSpan={3} className="text-gray-400 text-center py-6">加载中...</td>
-                </tr>
-              ) : configs.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="text-gray-400 text-center py-10 text-lg">暂无配置</td>
-                </tr>
-              ) : configs.map(cfg => (
-                <tr key={cfg.domain} className="border-b last:border-none hover:bg-green-50 transition-all group">
-                  <td
-                    className="py-4 px-4 text-left font-mono text-green-900 text-lg cursor-pointer"
-                    onClick={() => window.open(`http://${cfg.domain}`, '_blank')}
-                    // title="点击访问"
-                    style={{ textDecoration: 'none' }}
-                  >
-                    {cfg.domain}
-                  </td>
-                  <td className="py-4 px-4 text-left font-mono text-blue-900 text-lg">{cfg.proxy_pass}</td>
-                  <td className="py-4 px-4 text-center">
-                    <button
-                      className="px-5 py-2 bg-red-500 text-white rounded-full hover:bg-red-700 shadow-sm transition-all text-base font-bold"
-                      onClick={() => handleDelete(cfg.domain)}
-                    >删除</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
