@@ -53,8 +53,26 @@ export default function Cert() {
     setLoading(false);
   };
 
-  const handleDownload = (domain, type) => {
-    window.open(`/api/cert/download?type=${type}&domain=${encodeURIComponent(domain)}`);
+  // 同时下载crt和key，没有key只下载crt
+  const handleDownloadBoth = (cert) => {
+    // 下载crt
+    const crtUrl = `/api/cert/download?type=cert&domain=${encodeURIComponent(cert.domain || cert.name)}`;
+    const crtLink = document.createElement('a');
+    crtLink.href = crtUrl;
+    crtLink.download = `${cert.domain || cert.name}.crt`;
+    document.body.appendChild(crtLink);
+    crtLink.click();
+    document.body.removeChild(crtLink);
+    // 下载key（如果有）
+    if (cert.key) {
+      const keyUrl = `/api/cert/download?type=key&domain=${encodeURIComponent(cert.domain || cert.name)}`;
+      const keyLink = document.createElement('a');
+      keyLink.href = keyUrl;
+      keyLink.download = `${cert.domain || cert.name}.key`;
+      document.body.appendChild(keyLink);
+      keyLink.click();
+      document.body.removeChild(keyLink);
+    }
   };
 
   const handleDelete = async (domain) => {
@@ -212,7 +230,7 @@ export default function Cert() {
                   <td className="py-3 px-4 text-left">
                     <button
                       className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-700 shadow-sm mr-2 transition-all"
-                      onClick={() => handleDownload(cert.domain || cert.name, 'cert')}
+                      onClick={() => handleDownloadBoth(cert)}
                     >下载</button>
                     {!isCA(cert) && (
                       <button

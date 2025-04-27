@@ -6,12 +6,14 @@ const TOAST_DURATION = 3000;
 export default function Nginx() {
   const [configs, setConfigs] = useState([]);
   const [listLoading, setListLoading] = useState(false);
-  const [form, setForm] = useState({ domain: '', proxy_pass: '' });
+  const [form, setForm] = useState({ cert_domain: '', server_name: '', proxy_pass: '' });
   const [creating, setCreating] = useState(false);
   const [reloadLoading, setReloadLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [certList, setCertList] = useState([]);
   const [certLoading, setCertLoading] = useState(false);
+  const [startLoading, setStartLoading] = useState(false);
+  const [stopLoading, setStopLoading] = useState(false);
 
   // 获取证书列表（仅域名证书，不含CA）
   const fetchCertList = async () => {
@@ -50,8 +52,8 @@ export default function Nginx() {
   };
 
   const handleCreate = async () => {
-    if (!form.domain || !form.proxy_pass) {
-      toast.error('证书和代理目标不能为空', { duration: TOAST_DURATION });
+    if (!form.cert_domain || !form.server_name || !form.proxy_pass) {
+      toast.error('证书、域名和代理目标不能为空', { duration: TOAST_DURATION });
       return;
     }
     setCreating(true);
@@ -64,7 +66,7 @@ export default function Nginx() {
       const data = await res.json();
       if (data.success) {
         toast.success('已生成nginx配置', { duration: TOAST_DURATION });
-        setForm({ domain: '', proxy_pass: '' });
+        setForm({ cert_domain: '', server_name: '', proxy_pass: '' });
         setShowForm(false);
         fetchConfigs();
       } else {
@@ -108,6 +110,38 @@ export default function Nginx() {
     setReloadLoading(false);
   };
 
+  const handleStart = async () => {
+    setStartLoading(true);
+    try {
+      const res = await fetch('/api/nginx/start', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || 'nginx已启动', { duration: TOAST_DURATION });
+      } else {
+        toast.error(data.message || '启动失败', { duration: TOAST_DURATION });
+      }
+    } catch {
+      toast.error('请求失败', { duration: TOAST_DURATION });
+    }
+    setStartLoading(false);
+  };
+
+  const handleStop = async () => {
+    setStopLoading(true);
+    try {
+      const res = await fetch('/api/nginx/stop', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || 'nginx已停止', { duration: TOAST_DURATION });
+      } else {
+        toast.error(data.message || '停止失败', { duration: TOAST_DURATION });
+      }
+    } catch {
+      toast.error('请求失败', { duration: TOAST_DURATION });
+    }
+    setStopLoading(false);
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-start bg-white pt-10 pb-2">
       <Toaster position="top-center" />
@@ -134,8 +168,8 @@ export default function Nginx() {
                 <div className="mb-3 text-left">
                   <label className="block text-green-600 mb-1">选择证书<span className="text-red-500">*</span></label>
                   <select
-                    name="domain"
-                    value={form.domain}
+                    name="cert_domain"
+                    value={form.cert_domain}
                     onChange={handleInput}
                     className="w-full border px-3 py-2 rounded text-lg bg-white"
                     disabled={certLoading || certList.length === 0}
@@ -145,6 +179,10 @@ export default function Nginx() {
                       <option key={cert.domain} value={cert.domain}>{cert.domain}</option>
                     ))}
                   </select>
+                </div>
+                <div className="mb-3 text-left">
+                  <label className="block text-green-600 mb-1">配置域名（server_name）<span className="text-red-500">*</span></label>
+                  <input name="server_name" value={form.server_name} onChange={handleInput} className="w-full border px-3 py-2 rounded text-lg" placeholder="如 api.gezixa.com 或 *.gezixa.com" />
                 </div>
                 <div className="mb-3 text-left">
                   <label className="block text-green-600 mb-1">代理目标（proxy_pass）<span className="text-red-500">*</span></label>
@@ -163,7 +201,9 @@ export default function Nginx() {
       <div className="w-full max-w-2xl flex flex-row gap-8 mb-8 rounded-2xl bg-white py-4 px-8">
         <div className="flex-1 flex flex-col items-center justify-center bg-green-50 rounded-xl py-6 px-4">
           <h3 className="text-2xl font-bold text-green-700 mb-6">nginx操作</h3>
-          <button className="w-56 h-12 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold text-lg transition disabled:opacity-60" onClick={handleReload} disabled={reloadLoading}>{reloadLoading ? '重载中...' : '重载nginx服务'}</button>
+          <button className="w-56 h-12 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold text-lg transition disabled:opacity-60 mb-3" onClick={handleStart} disabled={startLoading}> {startLoading ? '启动中...' : '启动nginx服务'} </button>
+          <button className="w-56 h-12 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-bold text-lg transition disabled:opacity-60 mb-3" onClick={handleStop} disabled={stopLoading}> {stopLoading ? '停止中...' : '停止nginx服务'} </button>
+          <button className="w-56 h-12 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold text-lg transition disabled:opacity-60" onClick={handleReload} disabled={reloadLoading}>{reloadLoading ? '重载中...' : '重载nginx服务'}</button>
         </div>
       </div>
       <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lg px-6 py-8 mt-2">
