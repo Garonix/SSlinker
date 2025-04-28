@@ -50,6 +50,9 @@ export default function Cert() {
   // 现代化确认弹窗状态
   const [confirmModal, setConfirmModal] = useState({ open: false, cert: null });
 
+  // 证书列表多选状态
+  const [selectedRows, setSelectedRows] = useState([]);
+
   const fetchCerts = async () => {
     setListLoading(true);
     try {
@@ -152,27 +155,25 @@ export default function Cert() {
     const { name, value } = e.target;
     setDomainForm(f => ({ ...f, [name]: value }));
   };
+  const canSubmitDomain = (domainForm.domain && domainForm.domain.trim()) || (domainForm.ip && domainForm.ip.trim());
   const handleDomainSubmit = async () => {
-    if (!domainForm.domain) {
-      toast.error("域名不能为空", { duration: TOAST_DURATION });
-      return;
-    }
+    if (!canSubmitDomain) return;
     setDomainLoading(true);
     try {
       const params = new URLSearchParams();
       params.append('domain', domainForm.domain);
-      if (domainForm.ip) params.append('ip', domainForm.ip);
+      params.append('ip', domainForm.ip);
       const res = await fetch(`/api/cert/domain?${params.toString()}`, { method: "POST" });
       const data = await res.json();
       if (data.success) {
-        toast.success(data.message || "域名证书生成成功", { duration: TOAST_DURATION });
+        toast.success("证书生成成功", { duration: TOAST_DURATION });
         setShowDomainModal(false);
         fetchCerts();
       } else {
         toast.error(data.message || "生成失败", { duration: TOAST_DURATION });
       }
     } catch {
-      toast.error("请求失败", { duration: TOAST_DURATION });
+      toast.error("生成失败", { duration: TOAST_DURATION });
     }
     setDomainLoading(false);
   };
@@ -233,6 +234,49 @@ export default function Cert() {
     return (a.domain || a.name || '').localeCompare(b.domain || b.name || '');
   });
 
+  // 列表多选相关
+  const handleSelectAll = () => {
+    if (selectedRows.length === sortedCerts.length) {
+      setSelectedRows([]);
+    } else {
+      setSelectedRows(sortedCerts.map(cert => cert.domain || cert.name));
+    }
+  };
+  const handleSelectRow = (row) => {
+    if (selectedRows.includes(row)) {
+      setSelectedRows(selectedRows.filter(r => r !== row));
+    } else {
+      setSelectedRows([...selectedRows, row]);
+    }
+  };
+
+  // 刷新证书列表
+  const handleRefresh = async () => {
+    fetchCerts();
+  };
+
+  // 删除选中证书
+  const handleDeleteSelected = async () => {
+    if (selectedRows.length === 0) return;
+    try {
+      const res = await fetch('/api/cert/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domains: selectedRows }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('删除成功');
+        fetchCerts();
+        setSelectedRows([]);
+      } else {
+        toast.error(data.message || '删除失败');
+      }
+    } catch {
+      toast.error('删除失败');
+    }
+  };
+
   return (
     <div className="flex flex-col items-center justify-start bg-white pt-10 pb-2">
       <Toaster position="top-center" />
@@ -241,7 +285,7 @@ export default function Cert() {
         <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 rounded-xl shadow-sm py-6 px-4">
           <div className="flex items-center mb-6">
             <h3 className="text-2xl font-bold text-blue-800 mb-0 tracking-wide">CA根证书</h3>
-            <span className="ml-3 px-3 py-1 bg-green-200 text-green-700 text-base rounded">CA</span>
+            <span className="ml-3 px-3 py-0.5 bg-green-200 text-green-700 text-base rounded">CA</span>
           </div>
           <button
             className="w-56 h-12 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 font-bold text-xl transition focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-60"
@@ -264,85 +308,143 @@ export default function Cert() {
       </div>
       {/* 域名证书弹窗 */}
       {showDomainModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <div className="bg-white rounded shadow-lg p-8 w-full max-w-md relative animate-fadein">
-            <h3 className="text-lg font-bold mb-4 text-blue-700">生成域名证书</h3>
-            <div className="mb-3 text-left">
-              <label className="block text-gray-600 mb-1">证书名称（域名/标识）<span className="text-red-500">*</span></label>
-              <input name="domain" value={domainForm.domain} onChange={handleDomainInput} className="w-full border px-3 py-1 rounded" placeholder="如 example.com" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-white rounded-2xl shadow-2xl px-12 py-10 w-[430px] relative border-2 border-orange-100">
+            <div className="absolute right-6 top-6 cursor-pointer text-gray-400 hover:text-orange-400 text-2xl font-bold" onClick={closeDomainModal}>
+              ×
             </div>
-            <div className="mb-3 text-left">
-              <label className="block text-gray-600 mb-1">IP地址（可选，多个用逗号分隔）</label>
-              <input name="ip" value={domainForm.ip} onChange={handleDomainInput} className="w-full border px-3 py-1 rounded" placeholder="如 1.2.3.4,5.6.7.8" />
+            <div className="flex items-center mb-6">
+              <span className="text-3xl font-extrabold text-orange-600">生成域名证书</span>
+              <span className="ml-3 px-3 py-0.5 bg-orange-100 text-orange-600 text-base rounded-full font-bold">自动</span>
             </div>
-            <div className="flex justify-end gap-2 mt-6">
-              <button className="px-4 py-1 rounded bg-gray-200 hover:bg-gray-300" onClick={closeDomainModal} disabled={domainLoading}>取消</button>
-              <button className="px-6 py-1 rounded bg-blue-600 text-white hover:bg-blue-700" onClick={handleDomainSubmit} disabled={domainLoading}>
+            <div className="mb-6">
+              <label className="block text-lg font-bold text-gray-700 mb-1">域名 <span className="text-gray-400 text-base font-normal">(建议)</span></label>
+              <input name="domain" value={domainForm.domain} onChange={handleDomainInput} className="w-full border-2 border-orange-200 px-3 py-2 rounded-xl text-base focus:border-orange-400 focus:outline-none transition" placeholder="如 example.com" />
+            </div>
+            <div className="mb-6">
+              <label className="block text-lg font-bold text-gray-700 mb-1">IP地址 <span className="text-gray-400 text-base font-normal"></span></label>
+              <input name="ip" value={domainForm.ip} onChange={handleDomainInput} className="w-full border-2 border-orange-200 px-3 py-2 rounded-xl text-base focus:border-orange-400 focus:outline-none transition" placeholder="如 1.2.3.4 或多个用逗号分隔" />
+            </div>
+            <div className="flex justify-end gap-3 mt-8">
+              <button className="px-7 py-2 rounded-full bg-gray-100 border border-gray-300 text-gray-500 font-bold text-lg hover:bg-gray-200 transition" onClick={closeDomainModal} disabled={domainLoading}>取消</button>
+              <button className="px-8 py-2 rounded-full bg-orange-400 text-white font-bold text-lg hover:bg-orange-500 transition disabled:opacity-60"
+                onClick={handleDomainSubmit}
+                disabled={domainLoading || !canSubmitDomain}
+              >
                 {domainLoading ? "生成中..." : "确定"}
               </button>
             </div>
           </div>
         </div>
       )}
-      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-lg px-6 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-4">
-            <button
-              className="px-4 py-2 bg-orange-100 text-orange-600 rounded-full border border-orange-200 font-semibold hover:bg-orange-200 transition select-none"
-              onClick={openUploadModal}
-            >上传证书</button>
+      {/* 证书列表和浮动操作卡片布局 */}
+      <div className="w-full max-w-5xl flex flex-row gap-8 mt-2">
+        {/* 列表 */}
+        <div className="flex-1">
+          <div className="bg-white rounded-2xl shadow-lg px-6 py-8">
+            <div className="overflow-x-auto">
+              <table className="w-full text-base rounded-xl overflow-hidden">
+                <thead>
+                  <tr className="bg-blue-100 text-blue-700 text-lg">
+                    <th className="py-3 px-2 text-center w-12">
+                      <span className="inline-flex items-center justify-center">
+                        <input type="checkbox"
+                          id="cb-all"
+                          checked={selectedRows.length === sortedCerts.length && sortedCerts.length > 0}
+                          onChange={handleSelectAll}
+                          className="peer appearance-none h-5 w-5 border-2 border-blue-500 rounded bg-white align-middle cursor-pointer transition"
+                        />
+                        <svg className="absolute pointer-events-none w-4 h-4 text-blue-500" style={{display: selectedRows.length === sortedCerts.length && sortedCerts.length > 0 ? 'block' : 'none'}} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4 8-8" />
+                        </svg>
+                      </span>
+                    </th>
+                    <th className="py-3 px-4 text-left">证书名称</th>
+                    <th className="py-3 px-4 text-left">类型</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {listLoading ? (
+                    <tr>
+                      <td colSpan={3} className="text-gray-400 text-center py-6">加载中...</td>
+                    </tr>
+                  ) : sortedCerts.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="text-gray-400 text-center py-10 text-lg">暂无证书</td>
+                    </tr>
+                  ) : sortedCerts.map(cert => (
+                    <tr key={cert.domain || cert.name} className="border-b last:border-none hover:bg-blue-50 transition-all group">
+                      <td className="py-4 px-2 text-center">
+                        <span className="inline-flex items-center justify-center">
+                          <input
+                            type="checkbox"
+                            id={`row-cb-${cert.domain || cert.name}`}
+                            checked={selectedRows.includes(cert.domain || cert.name)}
+                            onChange={() => handleSelectRow(cert.domain || cert.name)}
+                            className="peer appearance-none h-5 w-5 border-2 border-blue-500 rounded bg-white align-middle cursor-pointer transition"
+                          />
+                          <svg className="absolute pointer-events-none w-4 h-4 text-blue-500" style={{display: selectedRows.includes(cert.domain || cert.name) ? 'block' : 'none'}} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4 8-8" />
+                          </svg>
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-left font-mono text-lg text-blue-900 flex items-center">
+                        {cert.domain || cert.name}
+                        {isCA(cert) && <span className="ml-2 px-3 py-0.5 bg-green-200 text-green-800 text-xs rounded-lg border border-green-200">CA</span>}
+                        {isWildcard(cert) && !isCA(cert) && (
+                          <span className="ml-2 px-3 py-0.5 bg-orange-200 text-orange-600 text-xs rounded-lg border border-orange-200">泛</span>
+                        )}
+                        {isUploaded(cert) && !isCA(cert) && (
+                          <span className="ml-2 px-3 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-lg border border-orange-200 font-semibold">其他</span>
+                        )}
+                      </td>
+                      <td className="py-4 px-4 text-left text-lg text-blue-700">
+                        {isCA(cert) ? '根证书' : isUploaded(cert) ? '其他证书' : isWildcard(cert) ? '泛域名证书' : '域名证书'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-base rounded-xl overflow-hidden border-separate" style={{borderSpacing:0}}>
-            <thead>
-              <tr className="bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700">
-                <th className="py-4 px-4 font-bold text-lg text-left tracking-wide">证书名称</th>
-                <th className="py-4 px-4 font-bold text-lg text-left tracking-wide">类型</th>
-                <th className="py-4 px-4 font-bold text-lg text-center tracking-wide">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedCerts.map((cert, idx) => (
-                <tr
-                  key={cert.domain || cert.name}
-                  className="hover:bg-blue-50 transition-all group"
-                >
-                  <td className={`py-4 px-4 text-left flex items-center font-mono text-lg text-blue-700`}>
-                    {cert.domain || cert.name}
-                    {isCA(cert) && <span className="ml-2 px-2 py-0.5 bg-green-200 text-green-800 text-xs rounded-lg border border-green-200">CA</span>}
-                    {isWildcard(cert) && !isCA(cert) && (
-                      <span className="ml-2 px-2 py-0.5 bg-orange-200 text-orange-600 text-xs rounded-lg border border-orange-200">泛</span>
-                    )}
-                    {isUploaded(cert) && (
-                      <span className="ml-2 px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-lg border border-orange-200">其他</span>
-                    )}
-                  </td>
-                  <td className={`py-4 px-4 text-left text-lg text-blue-700`}>
-                    {isCA(cert) ? '根证书' : isUploaded(cert) ? '其他证书' : isWildcard(cert) ? '泛域名证书' : '域名证书'}
-                  </td>
-                  <td className="py-4 px-4 text-center">
-                    <button
-                      className="px-5 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-700 shadow-sm transition-all text-base font-bold mr-2"
-                      onClick={() => handleDownloadBoth(cert)}
-                    >下载</button>
-                    {!isCA(cert) && (
-                      <button
-                        className="px-5 py-2 bg-orange-500 text-white rounded-full hover:bg-orange-600 shadow-sm transition-all text-base font-bold"
-                        onClick={() => handleDeleteCert(cert)}
-                      >删除</button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {/* 操作按钮浮动卡片 */}
+        <div className="w-40 flex-shrink-0">
+          <div
+            className="bg-white rounded-2xl shadow-lg px-2 py-4 flex flex-col items-center justify-start"
+            style={{ position: 'sticky', top: 280, zIndex: 20, height: 245 }}
+          >
+            <button
+              className="w-32 mb-4 px-3 py-2 rounded-full font-bold text-base shadow transition-all bg-blue-600 text-white hover:bg-blue-700"
+              onClick={handleRefresh}
+            >刷新</button>
+            <button
+              className="w-32 mb-4 px-3 py-2 rounded-full font-bold text-base shadow transition-all bg-orange-500 text-white hover:bg-orange-600"
+              onClick={openUploadModal}
+            >上传</button>
+            <button
+              className={`w-32 mb-4 px-3 py-2 rounded-full font-bold text-base shadow transition-all ${selectedRows.length === 1 ? 'bg-green-500 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}
+              disabled={selectedRows.length !== 1}
+              onClick={() => {
+                if (selectedRows.length === 1) {
+                  const cert = sortedCerts.find(c => (c.domain || c.name) === selectedRows[0]);
+                  if (cert) handleDownloadBoth(cert);
+                }
+              }}
+            >下载</button>
+            <button
+              className={`w-32 mb-4 px-3 py-2 rounded-full font-bold text-base shadow transition-all ${selectedRows.length > 0 ? 'bg-red-500 text-white hover:bg-red-700' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}
+              disabled={selectedRows.length === 0}
+              onClick={handleDeleteSelected}
+            >删除</button>
+          </div>
         </div>
-        {listLoading ? (
-          <div className="text-gray-400 mt-4 text-lg">加载中...</div>
-        ) : certs.length === 0 ? (
-          <div className="text-gray-400 mt-4 text-lg">暂无证书</div>
-        ) : null}
+      </div>
+      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-lg px-6 py-8 mt-8">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-4">
+          </div>
+        </div>
       </div>
       {/* 上传证书弹窗 */}
       {showUploadModal && (

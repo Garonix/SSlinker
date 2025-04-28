@@ -14,14 +14,14 @@ function Navbar() {
     { name: "系统状态", path: "/status" },
   ];
   return (
-    <nav className="bg-white/80 backdrop-blur border-b shadow-sm px-6 py-2 flex justify-between items-center sticky top-0 z-50">
-      <span className="text-xl font-bold text-blue-700 tracking-wide select-none">SSLinker</span>
-      <div className="flex gap-4">
+    <nav className="bg-white/90 backdrop-blur border-b border-blue-100 shadow-md px-10 py-3 flex justify-between items-center sticky top-0 z-50">
+      <span className="text-2xl font-extrabold text-blue-700 tracking-wide select-none drop-shadow-sm">SSLinker</span>
+      <div className="flex gap-2">
         {navs.map((nav) => (
           <Link
             key={nav.path}
             to={nav.path}
-            className={`px-3 py-1 rounded transition font-medium hover:bg-blue-50 hover:text-blue-700 ${pathname === nav.path ? "bg-blue-100 text-blue-700" : "text-gray-700"}`}
+            className={`px-5 py-2 rounded-full transition font-bold text-base shadow-sm hover:bg-blue-50 hover:text-blue-700 hover:shadow-md duration-200 ${pathname === nav.path ? "bg-blue-100 text-blue-700 shadow-md" : "text-gray-700"}`}
           >
             {nav.name}
           </Link>

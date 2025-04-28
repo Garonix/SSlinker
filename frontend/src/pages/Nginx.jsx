@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import toast, { Toaster } from 'react-hot-toast';
+import ConfirmModal from '../components/ConfirmModal';
 
 const TOAST_DURATION = 3000;
 
@@ -13,6 +14,20 @@ export default function Nginx() {
   const [certList, setCertList] = useState([]);
   const [certLoading, setCertLoading] = useState(false);
   const [selectedRows, setSelectedRows] = useState([]);
+  const [confirmModal, setConfirmModal] = useState({ open: false, domains: [] });
+  const [nginxStatus, setNginxStatus] = useState('unknown');
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/nginx/status')
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'running') setNginxStatus('running');
+        else if (data.status === 'stopped') setNginxStatus('stopped');
+        else setNginxStatus('error');
+      })
+      .catch(() => setNginxStatus('error'));
+  }, []);
 
   // 获取证书列表（仅域名证书，不含CA）
   const fetchCertList = async () => {
@@ -57,7 +72,7 @@ export default function Nginx() {
       finalServerName = form.cert_domain;
     }
     if (!form.cert_domain || !finalServerName || !form.proxy_pass) {
-      toast.error('证书、服务标识和代理目标不能为空', { duration: TOAST_DURATION });
+      toast.error('证书、反代地址和源地址不能为空', { duration: TOAST_DURATION });
       return;
     }
     // 前端校验和自动补全协议
@@ -66,7 +81,7 @@ export default function Nginx() {
       proxyPass = 'http://' + proxyPass;
     }
     if (!/^\w+:\/\//.test(proxyPass)) {
-      toast.error('代理目标必须以 http://、https:// 等协议头开头', { duration: TOAST_DURATION });
+      toast.error('源地址必须以 http://、https:// 等协议头开头', { duration: TOAST_DURATION });
       return;
     }
     setCreating(true);
@@ -92,19 +107,45 @@ export default function Nginx() {
   };
 
   const handleDelete = async (domain) => {
-    if (!window.confirm(`确定要删除配置 ${domain} 吗？`)) return;
-    try {
-      const res = await fetch(`/api/nginx/config?domain=${encodeURIComponent(domain)}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('删除成功', { duration: TOAST_DURATION });
-        fetchConfigs();
-      } else {
-        toast.error(data.message || '删除失败', { duration: TOAST_DURATION });
+    setConfirmModal({ open: true, domains: [domain] });
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedRows.length === 0) return;
+    setConfirmModal({ open: true, domains: [...selectedRows] });
+  };
+
+  const doDelete = async () => {
+    const domains = confirmModal.domains;
+    setConfirmModal({ open: false, domains: [] });
+    let successCount = 0;
+    let failCount = 0;
+    let failMessages = [];
+    for (let i = 0; i < domains.length; i++) {
+      const domain = domains[i];
+      try {
+        const res = await fetch(`/api/nginx/config?domain=${encodeURIComponent(domain)}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          successCount += 1;
+        } else {
+          failCount += 1;
+          failMessages.push(data.message || `删除${domain}失败`);
+        }
+      } catch {
+        failCount += 1;
+        failMessages.push(`请求${domain}失败`);
       }
-    } catch {
-      toast.error('请求失败', { duration: TOAST_DURATION });
     }
+    fetchConfigs();
+    setSelectedRows([]);
+    setTimeout(() => {
+      if (failCount === 0) {
+        toast.success('删除成功', { duration: TOAST_DURATION });
+      } else {
+        toast.error(failMessages.join('；'), { duration: TOAST_DURATION });
+      }
+    }, 100);
   };
 
   const handleReload = async () => {
@@ -141,7 +182,7 @@ export default function Nginx() {
   const selectedCert = certList.find(c => c.domain === form.cert_domain);
   const selectedCertType = selectedCert ? getCertType(selectedCert) : null;
 
-  // 是否显示服务标识输入框
+  // 是否显示反代地址输入框
   const showServerNameInput = selectedCertType === 'wildcard' || selectedCertType === 'other';
 
   // 编辑逻辑
@@ -176,10 +217,6 @@ export default function Nginx() {
       if (cfg) handleEdit(cfg);
     }
   };
-  const handleDeleteSelected = () => {
-    selectedRows.forEach(domain => handleDelete(domain));
-    setSelectedRows([]);
-  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-start bg-white pt-10 pb-2">
@@ -189,7 +226,22 @@ export default function Nginx() {
           {/* 卡片风格 */}
           <div className="bg-green-50 rounded-xl shadow px-6 py-5 flex flex-col items-center mb-2">
             <div className="flex items-center mb-6">
-              <span className="text-2xl font-bold text-green-700 mr-3 tracking-wide">反向代理</span>
+              <span className="text-2xl font-bold text-green-700 mr-3 tracking-wide" style={{ position: 'relative', left: '20px' }}>反向代理</span>
+              {/* nginx状态小圆圈 仅圆圈，右侧，自定义浮窗 */}
+              <span className="relative ml-3 inline-block" style={{ left: '10px', top: '2px' }}>
+                <span
+                  className={`w-4 h-4 rounded-full border border-gray-300 shadow ${nginxStatus === 'running' ? 'bg-green-500 animate-pulse' : nginxStatus === 'stopped' ? 'bg-gray-400 animate-pulse' : nginxStatus === 'error' ? 'bg-red-500 animate-pulse' : 'bg-gray-200 animate-pulse'}`}
+                  onMouseEnter={() => setShowTooltip(true)}
+                  onMouseLeave={() => setShowTooltip(false)}
+                  style={{ display: 'inline-block', cursor: 'pointer', animationDuration: '1.5s' }}
+                ></span>
+                {showTooltip && (
+                  <div className={`absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-2 px-4 py-2 rounded-xl shadow-lg text-sm font-semibold whitespace-nowrap ${nginxStatus === 'running' ? 'bg-green-50 text-green-700 border border-green-200' : nginxStatus === 'stopped' ? 'bg-gray-50 text-gray-600 border border-gray-200' : nginxStatus === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-gray-100 text-gray-400 border border-gray-200'}`}
+                    style={{ minWidth: '90px' }}>
+                    {nginxStatus === 'running' ? 'nginx服务正常' : nginxStatus === 'stopped' ? 'nginx服务停止' : nginxStatus === 'error' ? 'nginx服务异常' : 'nginx状态未知'}
+                  </div>
+                )}
+              </span>
             </div>
             <div className="flex gap-6">
               <button
@@ -209,9 +261,7 @@ export default function Nginx() {
                 disabled={reloadLoading}
               >
                 <span className="flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v16m16-8H4"></path>
-                  </svg>
+                  <span className="text-2xl font-bold align-middle" style={{ position: 'relative', top: '-2px' }}>⟳</span>
                   {reloadLoading ? '重载中...' : '服务重载'}
                 </span>
               </button>
@@ -241,8 +291,8 @@ export default function Nginx() {
                         </svg>
                       </span>
                     </th>
-                    <th className="py-3 px-4 text-left">服务标识</th>
-                    <th className="py-3 px-4 text-left">代理目标</th>
+                    <th className="py-3 px-4 text-left">反代地址</th>
+                    <th className="py-3 px-4 text-left">源地址</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -287,7 +337,10 @@ export default function Nginx() {
         </div>
         {/* 操作按钮卡片 */}
         <div className="w-40 flex-shrink-0">
-          <div className="bg-white rounded-2xl shadow-lg px-2 py-4 flex flex-col items-center justify-start">
+          <div
+            className="bg-white rounded-2xl shadow-lg px-2 py-4 flex flex-col items-center justify-start"
+            style={{ position: 'sticky', top: 280, zIndex: 20, height: 185 }}
+          >
             <button
               className="w-32 mb-4 px-3 py-2 rounded-full font-bold text-base shadow transition-all bg-blue-600 text-white hover:bg-blue-700"
               onClick={handleRefresh}
@@ -302,7 +355,6 @@ export default function Nginx() {
               disabled={selectedRows.length === 0}
               onClick={handleDeleteSelected}
             >删除</button>
-            
           </div>
         </div>
       </div>
@@ -333,7 +385,7 @@ export default function Nginx() {
                 </div>
                 {showServerNameInput && (
                   <div className="mb-5 text-left">
-                    <label className="block text-gray-700 font-semibold mb-2">服务标识 <span className="text-gray-400 text-sm">（必填）</span></label>
+                    <label className="block text-gray-700 font-semibold mb-2">反代地址 <span className="text-gray-400 text-sm">（必填）</span></label>
                     <input
                       name="server_name"
                       value={form.server_name}
@@ -344,7 +396,7 @@ export default function Nginx() {
                   </div>
                 )}
                 <div className="mb-5 text-left">
-                  <label className="block text-gray-700 font-semibold mb-2">代理目标 <span className="text-gray-400 text-sm">（必填）</span></label>
+                  <label className="block text-gray-700 font-semibold mb-2">源地址 <span className="text-gray-400 text-sm">（必填）</span></label>
                   <input
                     name="proxy_pass"
                     value={form.proxy_pass}
@@ -371,6 +423,16 @@ export default function Nginx() {
           </div>
         </div>
       )}
+      {/* 现代化确认弹窗 */}
+      <ConfirmModal
+        open={confirmModal.open}
+        title="删除配置"
+        message={confirmModal.domains.length === 1
+          ? `确定要删除配置“${confirmModal.domains[0]}”吗？`
+          : `确定要删除选中的 ${confirmModal.domains.length} 个配置吗？`}
+        onConfirm={doDelete}
+        onCancel={() => setConfirmModal({ open: false, domains: [] })}
+      />
     </div>
   );
 }

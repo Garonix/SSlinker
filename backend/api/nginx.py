@@ -31,3 +31,19 @@ def stop_nginx_api():
 @router.post("/reload")
 def reload():
     return reload_nginx()
+
+@router.get("/status")
+def nginx_status():
+    import subprocess
+    try:
+        # systemctl 检查nginx服务状态
+        result = subprocess.run(['systemctl', 'is-active', 'nginx'], capture_output=True, text=True)
+        status = result.stdout.strip()
+        if status == 'active':
+            return {"status": "running"}
+        elif status == 'inactive':
+            return {"status": "stopped"}
+        else:
+            return {"status": "error"}
+    except Exception:
+        return {"status": "error"}
