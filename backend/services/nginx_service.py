@@ -2,13 +2,13 @@ import os
 import re
 import subprocess
 
-# nginx相关服务函数（伪实现，后续补充）
+# nginx相关服务函数 (伪实现，后续补充 )
 def generate_nginx_config(cert_domain, server_name, proxy_pass):
     # 使用系统默认配置目录
     config_dir = '/etc/nginx/conf.d'
     if not os.path.exists(config_dir):
         os.makedirs(config_dir)
-    # 以server_name为文件名，直接用原始域名（保留.和*）
+    # 以server_name为文件名，直接用原始域名 (保留.和* )
     config_path = os.path.join(config_dir, f'{server_name}.conf')
     template_path = os.path.join(os.path.dirname(__file__), 'template/nginx_https_server.template')
     with open(template_path, 'r', encoding='utf-8') as tf:
@@ -52,10 +52,10 @@ def list_nginx_configs():
         return {"configs": [], "local_addr": read_local_addr()}
     for fname in os.listdir(config_dir):
         if fname.endswith('.conf'):
-            # 恢复域名原样（去掉.conf后缀即可）
+            # 恢复域名原样 (去掉.conf后缀即可 )
             domain = fname[:-5]
             config_path = os.path.join(config_dir, fname)
-            # 如果文件不存在，自动删除该项（冗余保护）
+            # 如果文件不存在，自动删除该项 (冗余保护 )
             if not os.path.exists(config_path):
                 try:
                     os.remove(config_path)

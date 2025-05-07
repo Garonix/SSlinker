@@ -74,7 +74,7 @@ async def upload_cert(file, key, name=None):
     cert_filename = file.filename
     if not (cert_filename.endswith('.crt') or cert_filename.endswith('.pem') or cert_filename.endswith('.cer')):
         return {"success": False, "message": "只允许crt/pem/cer证书文件"}
-    # 证书名称（优先用name，否则用文件名去后缀）
+    # 证书名称 (优先用name，否则用文件名去后缀 )
     base_name = name.strip() if name else os.path.splitext(cert_filename)[0]
     # 文件保存名：名称+后缀
     cert_save_path = os.path.join(upload_dir, base_name + os.path.splitext(cert_filename)[1])
@@ -109,7 +109,7 @@ def list_certs():
                 "key": f"{name}.key" if os.path.exists(key_path) else None,
                 "name": name  # 普通证书名称
             })
-    # 其他证书（上传）
+    # 其他证书 (上传 )
     upload_dir = os.path.join(cert_dir, 'uploads')
     if os.path.exists(upload_dir):
         for f in os.listdir(upload_dir):
@@ -170,7 +170,7 @@ def delete_cert(domain):
         except Exception as e:
             errors.append(f"删除{path}失败: {e}")
 
-    # 删除相关反向代理配置（同名的server_name）
+    # 删除相关反向代理配置 (同名的server_name )
     try:
         from services.nginx_service import delete_nginx_config
         nginx_result = delete_nginx_config(domain)

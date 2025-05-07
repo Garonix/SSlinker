@@ -22,7 +22,7 @@ app.include_router(cert.router, prefix="/api/cert")
 app.include_router(nginx.router, prefix="/api/nginx")
 app.include_router(system.router, prefix="/api")
 
-# 静态文件托管（生产环境）
+# 静态文件托管 (生产环境 )
 frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "../frontend/dist"))
 if os.path.exists(frontend_dist):
     app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="assets")

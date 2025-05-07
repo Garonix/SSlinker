@@ -31,7 +31,7 @@ export default function Nginx() {
       .catch(() => setNginxStatus('error'));
   }, []);
 
-  // 获取证书列表（仅域名证书，不含CA）
+  // 获取证书列表 (仅域名证书，不含CA )
   const fetchCertList = async () => {
     setCertLoading(true);
     try {
@@ -65,7 +65,7 @@ export default function Nginx() {
     fetchLocalAddr();
   }, []);
 
-  // 获取本机地址
+  // 获取本机IP
   const fetchLocalAddr = async () => {
     try {
       const res = await fetch('/api/nginx/local_addr');
@@ -250,7 +250,7 @@ export default function Nginx() {
   // 复制hosts格式
   const handleCopyHosts = () => {
     if (!localAddr || selectedRows.length === 0) {
-      toast.error('请先设置本机地址并选择配置', { duration: TOAST_DURATION });
+      toast.error('请先设置本机IP并选择配置', { duration: TOAST_DURATION });
       return;
     }
     const lines = selectedRows.map(sel => {
@@ -292,7 +292,7 @@ export default function Nginx() {
               </span>
             </div>
             <div className="flex gap-6">
-              
+
               <button
                 className="px-10 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 font-bold text-xl transition shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-60"
                 onClick={handleReload}
@@ -315,14 +315,14 @@ export default function Nginx() {
                 </span>
               </button>
               <button
-                className="px-10 py-3 bg-blue-400 text-white rounded-full hover:bg-blue-500 font-bold text-xl transition shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+                className="px-10 py-3 bg-gradient-to-r from-blue-500 to-sky-400 text-white rounded-full hover:from-blue-600 hover:to-sky-500 font-bold text-xl transition shadow-lg focus:outline-none focus:ring-2 focus:ring-sky-300"
                 onClick={() => setShowLocalAddrModal(true)}
               >
                 <span className="flex items-center gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"></path>
+                    <path strokeLinejoin="round" d="M12 4L4 20L20 20Z"></path>
                   </svg>
-                  本机地址
+                  本机IP
                 </span>
               </button>
             </div>
@@ -346,7 +346,7 @@ export default function Nginx() {
                           onChange={handleSelectAll}
                           className="peer appearance-none h-5 w-5 border-2 border-green-500 rounded bg-white align-middle cursor-pointer transition"
                         />
-                        <svg className="absolute pointer-events-none w-4 h-4 text-green-500" style={{display: selectedRows.length === configs.length && configs.length > 0 ? 'block' : 'none'}} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                        <svg className="absolute pointer-events-none w-4 h-4 text-green-500" style={{ display: selectedRows.length === configs.length && configs.length > 0 ? 'block' : 'none' }} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4 8-8" />
                         </svg>
                       </span>
@@ -375,7 +375,7 @@ export default function Nginx() {
                             onChange={() => handleSelectRow(cfg.domain)}
                             className="peer appearance-none h-5 w-5 border-2 border-green-500 rounded bg-white align-middle cursor-pointer transition"
                           />
-                          <svg className="absolute pointer-events-none w-4 h-4 text-green-500" style={{display: selectedRows.includes(cfg.domain) ? 'block' : 'none'}} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                          <svg className="absolute pointer-events-none w-4 h-4 text-green-500" style={{ display: selectedRows.includes(cfg.domain) ? 'block' : 'none' }} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4 8-8" />
                           </svg>
                         </span>
@@ -466,6 +466,31 @@ export default function Nginx() {
                     name="proxy_pass"
                     value={form.proxy_pass}
                     onChange={handleInput}
+                    onBlur={e => {
+                      const val = e.target.value.trim();
+                      if (val) {
+                        const protocolSeparatorIndex = val.indexOf('://'); // 查找 '://'
+
+                        if (protocolSeparatorIndex !== -1) { // 如果包含 '://'
+                          // 如果不以标准的 http:// 或 https:// 开头
+                          if (!/^https?:\/\//i.test(val)) {
+                            const restOfString = val.substring(protocolSeparatorIndex + 3);
+                            const correctedVal = 'http://' + restOfString; // 改为 http://
+
+                            handleInput({
+                              target: { name: 'proxy_pass', value: correctedVal }
+                            });
+                          }
+                          // 如果是标准的 http:// 或 https://，则不做修改
+                        } else { // 如果不包含 '://'
+                          const correctedVal = 'http://' + val; // 直接加上 http://
+
+                          handleInput({
+                            target: { name: 'proxy_pass', value: correctedVal }
+                          });
+                        }
+                      }
+                    }}
                     className="w-full px-3 py-2 rounded-lg border-2 border-green-200 focus:outline-none focus:border-green-400 bg-white text-base text-green-700 transition"
                     placeholder="如 http://127.0.0.1:8080"
                   />
@@ -488,15 +513,15 @@ export default function Nginx() {
           </div>
         </div>
       )}
-      {/* 本机地址弹窗 */}
+      {/* 本机IP弹窗 */}
       {showLocalAddrModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
           <div className="bg-blue-50 rounded-2xl shadow-2xl p-8 w-full max-w-xs border border-blue-200 animate-fadein">
-            <div className="font-bold text-lg mb-4 text-blue-700">设置本机地址</div>
-            <div className="mb-6 text-blue-700 text-base">请输入本机地址（如 192.168.1.100）</div>
+            <div className="font-bold text-lg mb-4 text-blue-700">设置本机IP</div>
+            <div className="mb-6 text-blue-700 text-base">仅限IP地址</div>
             <input
               className="w-full px-4 py-2 mb-6 rounded-lg border-2 border-blue-300 bg-white text-base text-blue-700 focus:outline-none focus:border-blue-500 transition"
-              placeholder="本机地址"
+              placeholder="本机IP"
               value={localAddr}
               onChange={e => setLocalAddr(e.target.value)}
             />
@@ -513,9 +538,9 @@ export default function Nginx() {
                       });
                       const data = await res.json();
                       setLocalAddr(data.local_addr || localAddr);
-                      toast.success('本机地址已设置', { duration: TOAST_DURATION });
+                      toast.success('本机IP已设置', { duration: TOAST_DURATION });
                     } catch {
-                      toast.error('本机地址保存失败', { duration: TOAST_DURATION });
+                      toast.error('本机IP保存失败', { duration: TOAST_DURATION });
                     }
                     setShowLocalAddrModal(false);
                   }
