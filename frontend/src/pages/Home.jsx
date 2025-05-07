@@ -56,7 +56,7 @@ export default function Home() {
       });
       setStage("全部完成，正在下载CA证书...");
       setTimeout(downloadCA, 300);
-      setMsg('一键配置成功！<a href="/guide" class="text-blue-600 underline hover:text-blue-800 ml-1">使用指南</a>');
+      setMsg('成功！查看<a href="/nginx" class="text-blue-600 underline hover:text-blue-800 ml-1">反向代理</a>');
     } catch (e) {
       toast.error("操作失败，请检查输入和服务状态。", { duration: 4000 });
       setMsg("");

@@ -291,7 +291,7 @@ export default function Cert() {
       <Toaster position="top-center" />
       <div className="w-full max-w-5xl flex flex-row gap-8 mb-8 rounded-2xl shadow-lg bg-white py-4 px-8">
         {/* CA根证书卡片 */}
-        <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 rounded-xl shadow-sm py-6 px-4">
+        <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 rounded-xl shadow-sm py-6 px-4 animate-cert-card">
           <div className="flex items-center mb-6">
             <h3 className="text-2xl font-bold text-blue-800 mb-0 tracking-wide">CA根证书</h3>
             <span className="ml-3 px-3 py-0.5 bg-green-200 text-green-700 text-base rounded">CA</span>
@@ -305,7 +305,7 @@ export default function Cert() {
           </button>
         </div>
         {/* 域名证书卡片 */}
-        <div className="flex-1 flex flex-col items-center justify-center bg-orange-50 rounded-xl shadow-sm py-6 px-4">
+        <div className="flex-1 flex flex-col items-center justify-center bg-orange-50 rounded-xl shadow-sm py-6 px-4 animate-cert-card">
           <h3 className="text-2xl font-bold text-orange-600 mb-6 tracking-wide">域名证书</h3>
           <button
             className="w-56 h-12 bg-orange-500 text-white rounded-full shadow-lg hover:bg-orange-600 font-bold text-xl transition focus:outline-none focus:ring-2 focus:ring-orange-300 disabled:opacity-60"
@@ -317,8 +317,8 @@ export default function Cert() {
       </div>
       {/* 域名证书弹窗 */}
       {showDomainModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-          <div className="bg-white rounded-2xl shadow-2xl px-12 py-10 w-[430px] relative border-2 border-orange-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30 animate-cert-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl px-12 py-10 w-[430px] relative border-2 border-orange-100 animate-cert-modal">
             <div className="absolute right-6 top-6 cursor-pointer text-gray-400 hover:text-orange-400 text-2xl font-bold" onClick={closeDomainModal}>
               ×
             </div>
@@ -350,7 +350,7 @@ export default function Cert() {
       <div className="w-full max-w-5xl flex flex-row gap-8 mt-2">
         {/* 列表 */}
         <div className="flex-1">
-          <div className="bg-white rounded-2xl shadow-lg px-6 py-8">
+          <div className="bg-white rounded-2xl shadow-lg px-6 py-8 animate-cert-card">
             <div className="overflow-x-auto">
               <table className="w-full text-base rounded-xl overflow-hidden">
                 <thead>
@@ -363,7 +363,7 @@ export default function Cert() {
                           onChange={handleSelectAll}
                           className="peer appearance-none h-5 w-5 border-2 border-blue-500 rounded bg-white align-middle cursor-pointer transition"
                         />
-                        <svg className="absolute pointer-events-none w-4 h-4 text-blue-500" style={{display: selectedRows.length === sortedCerts.length && sortedCerts.length > 0 ? 'block' : 'none'}} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                        <svg className="absolute pointer-events-none w-4 h-4 text-blue-500" style={{ display: selectedRows.length === sortedCerts.length && sortedCerts.length > 0 ? 'block' : 'none' }} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4 8-8" />
                         </svg>
                       </span>
@@ -382,7 +382,7 @@ export default function Cert() {
                       <td colSpan={3} className="text-gray-400 text-center py-10 text-lg">暂无证书</td>
                     </tr>
                   ) : sortedCerts.map(cert => (
-                    <tr key={cert.domain || cert.name} className="border-b last:border-none hover:bg-blue-50 transition-all group">
+                    <tr key={cert.domain || cert.name} className="border-b last:border-none hover:bg-blue-50 transition-all group animate-cert-row" style={{ animationDelay: `${0.07 + (0.04 * (sortedCerts.indexOf(cert)))}s`, animationFillMode: 'backwards' }}>
                       <td className="py-4 px-2 text-center">
                         <span className="inline-flex items-center justify-center">
                           <input
@@ -392,7 +392,7 @@ export default function Cert() {
                             onChange={() => handleSelectRow(cert.domain || cert.name)}
                             className="peer appearance-none h-5 w-5 border-2 border-blue-500 rounded bg-white align-middle cursor-pointer transition"
                           />
-                          <svg className="absolute pointer-events-none w-4 h-4 text-blue-500" style={{display: selectedRows.includes(cert.domain || cert.name) ? 'block' : 'none'}} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                          <svg className="absolute pointer-events-none w-4 h-4 text-blue-500" style={{ display: selectedRows.includes(cert.domain || cert.name) ? 'block' : 'none' }} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4 8-8" />
                           </svg>
                         </span>
@@ -420,7 +420,7 @@ export default function Cert() {
         {/* 操作按钮浮动卡片 */}
         <div className="w-40 flex-shrink-0">
           <div
-            className="bg-white rounded-2xl shadow-lg px-2 py-4 flex flex-col items-center justify-start"
+            className="bg-white rounded-2xl shadow-lg px-2 py-4 flex flex-col items-center justify-start animate-cert-card"
             style={{ position: 'sticky', top: 280, zIndex: 20, height: 245 }}
           >
             <button
@@ -452,7 +452,7 @@ export default function Cert() {
       {/* 上传证书弹窗 */}
       {showUploadModal && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-lg relative animate-fadein border border-orange-200">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-lg relative animate-cert-modal border border-orange-200">
             <h3 className="text-2xl font-bold text-orange-600 mb-6 tracking-wide flex items-center">
               <span className="mr-2">上传其他证书</span>
               <span className="px-2 py-0.5 bg-orange-100 text-orange-600 text-xs rounded-lg border border-orange-200 font-semibold">自定义</span>
@@ -523,6 +523,36 @@ export default function Cert() {
         onConfirm={doDeleteCert}
         onCancel={() => setConfirmModal({ open: false, cert: null })}
       />
+      <style>{`
+        @keyframes cert-fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes cert-modal-in {
+          from { opacity: 0; transform: scale(0.97) translateY(32px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes cert-card-up {
+          from { opacity: 0; transform: translateY(36px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes cert-row-up {
+          from { opacity: 0; transform: translateY(18px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-cert-fade-in { animation: cert-fade-in 0.5s cubic-bezier(.4,0,.2,1) both; }
+        .animate-cert-modal { animation: cert-modal-in 0.7s cubic-bezier(.4,0,.2,1) both; }
+        .animate-cert-card { animation: cert-card-up 0.7s cubic-bezier(.4,0,.2,1) both; transition: box-shadow 0.3s, transform 0.3s; }
+        .animate-cert-row { animation: cert-row-up 0.5s cubic-bezier(.4,0,.2,1) both; }
+        .animate-cert-card:hover {
+          transform: scale(1.025);
+          box-shadow: 0 12px 36px rgba(200,200,200,0.20), 0 4px 16px rgba(200,200,200,0.20);
+        }
+        .animate-cert-row:hover {
+          background: #f0f9ff !important;
+          transform: scale(1.01);
+        }
+      `}</style>
     </div>
   );
 }

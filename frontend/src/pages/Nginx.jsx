@@ -272,7 +272,7 @@ export default function Nginx() {
       <div className="w-full max-w-5xl bg-white rounded-2xl shadow-lg px-6 py-2 mt-2">
         <div className="w-full max-w-5xl mb-2">
           {/* 卡片风格 */}
-          <div className="bg-green-50 rounded-xl shadow px-6 py-5 flex flex-col items-center mb-2">
+          <div className="bg-green-50 rounded-xl shadow px-6 py-5 flex flex-col items-center mb-2 animate-nginx-card">
             <div className="flex items-center mb-6">
               <span className="text-2xl font-bold text-green-700 mr-3 tracking-wide" style={{ position: 'relative', left: '20px' }}>反向代理</span>
               {/* nginx状态小圆圈 仅圆圈，右侧，自定义浮窗 */}
@@ -333,7 +333,7 @@ export default function Nginx() {
       <div className="w-full max-w-5xl flex flex-row gap-8 mt-8">
         {/* 列表 */}
         <div className="flex-1">
-          <div className="bg-white rounded-2xl shadow-lg px-6 py-8">
+          <div className="bg-white rounded-2xl shadow-lg px-6 py-8 animate-nginx-card">
             <div className="overflow-x-auto">
               <table className="w-full text-base rounded-xl overflow-hidden">
                 <thead>
@@ -365,7 +365,7 @@ export default function Nginx() {
                       <td colSpan={3} className="text-gray-400 text-center py-10 text-lg">暂无配置</td>
                     </tr>
                   ) : configs.map(cfg => (
-                    <tr key={cfg.domain} className="border-b last:border-none hover:bg-green-50 transition-all group">
+                    <tr key={cfg.domain} className="border-b last:border-none hover:bg-green-50 transition-all group animate-nginx-row" style={{animationDelay: `${0.07 + (0.04 * configs.indexOf(cfg))}s`, animationFillMode: 'backwards'}}>
                       <td className="py-4 px-2 text-center">
                         <span className="inline-flex items-center justify-center">
                           <input
@@ -398,7 +398,7 @@ export default function Nginx() {
         {/* 操作按钮卡片 */}
         <div className="w-40 flex-shrink-0">
           <div
-            className="bg-white rounded-2xl shadow-lg px-2 py-4 flex flex-col items-center justify-start"
+            className="bg-white rounded-2xl shadow-lg px-2 py-4 flex flex-col items-center justify-start animate-nginx-card"
             style={{ position: 'sticky', top: 280, zIndex: 20, height: 240 }}
           >
             <button
@@ -424,8 +424,8 @@ export default function Nginx() {
         </div>
       </div>
       {showForm && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-20">
-          <div className="bg-green-50 rounded-2xl p-8 shadow-xl border border-green-200 animate-fadein" style={{ minWidth: 0 }}>
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-20 animate-nginx-fade-in">
+          <div className="bg-green-50 rounded-2xl p-8 shadow-xl border border-green-200 animate-nginx-modal" style={{ minWidth: 0 }}>
             <div className="flex flex-col items-center">
               <h3 className="text-2xl font-bold text-green-700 mb-6 tracking-wide flex items-center w-[320px]">
                 <span className="mr-2">配置生成</span>
@@ -516,7 +516,7 @@ export default function Nginx() {
       {/* 本机IP弹窗 */}
       {showLocalAddrModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-          <div className="bg-blue-50 rounded-2xl shadow-2xl p-8 w-full max-w-xs border border-blue-200 animate-fadein">
+          <div className="bg-blue-50 rounded-2xl shadow-2xl p-8 w-full max-w-xs border border-blue-200 animate-nginx-modal">
             <div className="font-bold text-lg mb-4 text-blue-700">设置本机IP</div>
             <div className="mb-6 text-blue-700 text-base">仅限IP地址</div>
             <input
@@ -529,21 +529,26 @@ export default function Nginx() {
               <button onClick={() => setShowLocalAddrModal(false)} className="px-5 py-2 bg-gray-100 text-gray-600 rounded-full font-bold hover:bg-gray-200">取消</button>
               <button
                 onClick={async () => {
-                  if (localAddr.trim()) {
-                    try {
-                      const res = await fetch('/api/nginx/local_addr', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ local_addr: localAddr })
-                      });
-                      const data = await res.json();
-                      setLocalAddr(data.local_addr || localAddr);
-                      toast.success('本机IP已设置', { duration: TOAST_DURATION });
-                    } catch {
-                      toast.error('本机IP保存失败', { duration: TOAST_DURATION });
-                    }
-                    setShowLocalAddrModal(false);
+                  // IP地址校验（支持IPv4/IPv6）
+                  const ipv4 = /^((25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)(\.|$)){4}$/;
+                  const ipv6 = /^([\da-fA-F]{1,4}:){7}[\da-fA-F]{1,4}$/;
+                  if (!localAddr.trim() || (!ipv4.test(localAddr.trim()) && !ipv6.test(localAddr.trim()))) {
+                    toast.error('请输入有效的IP地址', { duration: TOAST_DURATION });
+                    return;
                   }
+                  try {
+                    const res = await fetch('/api/nginx/local_addr', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ local_addr: localAddr })
+                    });
+                    const data = await res.json();
+                    setLocalAddr(data.local_addr || localAddr);
+                    toast.success('本机IP已设置', { duration: TOAST_DURATION });
+                  } catch {
+                    toast.error('本机IP保存失败', { duration: TOAST_DURATION });
+                  }
+                  setShowLocalAddrModal(false);
                 }}
                 className={`px-5 py-2 bg-blue-500 text-white rounded-full font-bold ${localAddr.trim() ? 'hover:bg-blue-600' : 'opacity-60 cursor-not-allowed'}`}
                 disabled={!localAddr.trim()}
@@ -555,7 +560,7 @@ export default function Nginx() {
       {/* 现代化确认弹窗 */}
       {confirmModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-xs border border-green-200 animate-fadein">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-xs border border-green-200 animate-nginx-modal">
             <div className="font-bold text-lg mb-4 text-gray-800">删除配置</div>
             <div className="mb-6 text-gray-700 text-base">
               {confirmModal.domains.length === 1
@@ -569,6 +574,37 @@ export default function Nginx() {
           </div>
         </div>
       )}
+      {/* 动画样式 */}
+      <style>{`
+        @keyframes nginx-fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes nginx-modal-in {
+          from { opacity: 0; transform: scale(0.97) translateY(32px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes nginx-card-up {
+          from { opacity: 0; transform: translateY(36px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes nginx-row-up {
+          from { opacity: 0; transform: translateY(18px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-nginx-fade-in { animation: nginx-fade-in 0.5s cubic-bezier(.4,0,.2,1) both; }
+        .animate-nginx-modal { animation: nginx-modal-in 0.7s cubic-bezier(.4,0,.2,1) both; }
+        .animate-nginx-card { animation: nginx-card-up 0.7s cubic-bezier(.4,0,.2,1) both; transition: box-shadow 0.3s, transform 0.3s; }
+        .animate-nginx-row { animation: nginx-row-up 0.5s cubic-bezier(.4,0,.2,1) both; }
+        .animate-nginx-card:hover {
+          transform: scale(1.025);
+          box-shadow: 0 12px 36px rgba(34,197,94,0.13), 0 4px 16px rgba(34,197,94,0.10);
+        }
+        .animate-nginx-row:hover {
+          background: #f0fdf4 !important;
+          transform: scale(1.01);
+        }
+      `}</style>
     </div>
   );
 }
