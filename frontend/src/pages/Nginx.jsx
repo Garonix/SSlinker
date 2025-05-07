@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from "react";
 import toast, { Toaster } from 'react-hot-toast';
-import ConfirmModal from '../components/ConfirmModal';
 
 const TOAST_DURATION = 3000;
 
-import LocalAddrModal from '../components/LocalAddrModal';
 
 export default function Nginx() {
   const [configs, setConfigs] = useState([]);
@@ -401,7 +399,7 @@ export default function Nginx() {
         <div className="w-40 flex-shrink-0">
           <div
             className="bg-white rounded-2xl shadow-lg px-2 py-4 flex flex-col items-center justify-start"
-            style={{ position: 'sticky', top: 280, zIndex: 20, height: 185 }}
+            style={{ position: 'sticky', top: 280, zIndex: 20, height: 240 }}
           >
             <button
               className="w-32 mb-4 px-3 py-2 rounded-full font-bold text-base shadow transition-all bg-blue-600 text-white hover:bg-blue-700"
@@ -418,7 +416,7 @@ export default function Nginx() {
               onClick={handleDeleteSelected}
             >删除</button>
             <button
-              className={`w-32 mb-4 px-3 py-2 rounded-full font-bold text-base shadow transition-all bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300 ${selectedRows.length === 0 ? 'opacity-60 cursor-not-allowed' : ''}`}
+              className={`w-32 mb-4 px-3 py-2 rounded-full font-bold text-base shadow transition-all ${selectedRows.length > 0 ? 'bg-blue-300 text-white hover:bg-blue-400' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}
               disabled={selectedRows.length === 0}
               onClick={handleCopyHosts}
             >复制</button>
@@ -491,35 +489,61 @@ export default function Nginx() {
         </div>
       )}
       {/* 本机地址弹窗 */}
-      <LocalAddrModal
-        open={showLocalAddrModal}
-        onClose={() => setShowLocalAddrModal(false)}
-        onSubmit={async addr => {
-          try {
-            const res = await fetch('/api/nginx/local_addr', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ local_addr: addr })
-            });
-            const data = await res.json();
-            setLocalAddr(data.local_addr || addr);
-            toast.success('本机地址已设置', { duration: TOAST_DURATION });
-          } catch {
-            toast.error('本机地址保存失败', { duration: TOAST_DURATION });
-          }
-          setShowLocalAddrModal(false);
-        }}
-      />
+      {showLocalAddrModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-blue-50 rounded-2xl shadow-2xl p-8 w-full max-w-xs border border-blue-200 animate-fadein">
+            <div className="font-bold text-lg mb-4 text-blue-700">设置本机地址</div>
+            <div className="mb-6 text-blue-700 text-base">请输入本机地址（如 192.168.1.100）</div>
+            <input
+              className="w-full px-4 py-2 mb-6 rounded-lg border-2 border-blue-300 bg-white text-base text-blue-700 focus:outline-none focus:border-blue-500 transition"
+              placeholder="本机地址"
+              value={localAddr}
+              onChange={e => setLocalAddr(e.target.value)}
+            />
+            <div className="flex justify-end gap-4">
+              <button onClick={() => setShowLocalAddrModal(false)} className="px-5 py-2 bg-gray-100 text-gray-600 rounded-full font-bold hover:bg-gray-200">取消</button>
+              <button
+                onClick={async () => {
+                  if (localAddr.trim()) {
+                    try {
+                      const res = await fetch('/api/nginx/local_addr', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ local_addr: localAddr })
+                      });
+                      const data = await res.json();
+                      setLocalAddr(data.local_addr || localAddr);
+                      toast.success('本机地址已设置', { duration: TOAST_DURATION });
+                    } catch {
+                      toast.error('本机地址保存失败', { duration: TOAST_DURATION });
+                    }
+                    setShowLocalAddrModal(false);
+                  }
+                }}
+                className={`px-5 py-2 bg-blue-500 text-white rounded-full font-bold ${localAddr.trim() ? 'hover:bg-blue-600' : 'opacity-60 cursor-not-allowed'}`}
+                disabled={!localAddr.trim()}
+              >确定</button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* 现代化确认弹窗 */}
-      <ConfirmModal
-        open={confirmModal.open}
-        title="删除配置"
-        message={confirmModal.domains.length === 1
-          ? `确定要删除配置“${confirmModal.domains[0]}”吗？`
-          : `确定要删除选中的 ${confirmModal.domains.length} 个配置吗？`}
-        onConfirm={doDelete}
-        onCancel={() => setConfirmModal({ open: false, domains: [] })}
-      />
+      {confirmModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-xs border border-green-200 animate-fadein">
+            <div className="font-bold text-lg mb-4 text-gray-800">删除配置</div>
+            <div className="mb-6 text-gray-700 text-base">
+              {confirmModal.domains.length === 1
+                ? `确定要删除配置“${confirmModal.domains[0]}”吗？`
+                : `确定要删除选中的 ${confirmModal.domains.length} 个配置吗？`}
+            </div>
+            <div className="flex justify-end gap-4">
+              <button onClick={() => setConfirmModal({ open: false, domains: [] })} className="px-5 py-2 bg-gray-100 text-gray-600 rounded-full font-bold hover:bg-gray-200">取消</button>
+              <button onClick={doDelete} className="px-5 py-2 bg-green-600 text-white rounded-full font-bold hover:bg-green-700">确定</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
