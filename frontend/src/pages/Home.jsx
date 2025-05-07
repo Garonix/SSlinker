@@ -7,53 +7,56 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [stage, setStage] = useState("");
   const [msg, setMsg] = useState("");
-  const [nginxStatus, setNginxStatus] = useState('unknown'); // 状态: running | stopped | error | unknown
-
-  // 获取nginx服务状态
-  React.useEffect(() => {
-    fetch('/api/nginx/status')
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === 'running') setNginxStatus('running');
-        else if (data.status === 'stopped') setNginxStatus('stopped');
-        else setNginxStatus('error');
-      })
-      .catch(() => setNginxStatus('error'));
-  }, []);
 
   // 自动下载CA证书
   const downloadCA = () => {
     const link = document.createElement('a');
-    link.href = '/api/cert/download?type=ca';
-    link.download = 'ca.crt';
+    link.href = '/api/cert/download?type=cert&domain=SSLinker';;
+    link.download = 'SSLinker.crt';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
+  // 检查根证书是否存在（通过list接口）
+  const checkCAExists = async () => {
+    try {
+      const res = await fetch("/api/cert/list");
+      const data = await res.json();
+      return (data.certs || []).some(cert => cert.domain === 'SSLinker');
+    } catch {
+      return false;
+    }
+  };
+
   // 一键自动化：生成CA、生成证书、创建反代
   const handleOneClick = async () => {
     setLoading(true);
-    setStage("正在生成根CA证书...");
+    setStage("检查根CA证书");
     setMsg("");
     try {
-      // 1. 生成根CA（幂等）
-      await fetch("/api/cert/ca", { method: "POST" });
-      setStage("正在为反代地址生成证书...");
+      // 检查CA是否已存在
+      const caExists = await checkCAExists();
+      if (!caExists) {
+        setStage("生成根CA证书");
+        await fetch("/api/cert/ca", { method: "POST" });
+      }
+      setStage("生成域名证书");
       // 2. 生成证书（域名或IP）
       const params = new URLSearchParams();
       params.append('domain', proxy);
+      // 
       await fetch(`/api/cert/domain?${params.toString()}`, { method: "POST" });
-      setStage("正在创建反向代理...");
+      setStage("创建反向代理");
       // 3. 创建反向代理
-      await fetch("/api/nginx/create", {
+      await fetch("/api/nginx/config", {
         method: "POST",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cert_domain: proxy, server_name: proxy, proxy_pass: origin })
       });
       setStage("全部完成，正在下载CA证书...");
       setTimeout(downloadCA, 300);
-      setMsg("一键配置成功！请前往反向代理页面管理。");
+      setMsg('一键配置成功！<a href="/guide" class="text-blue-600 underline hover:text-blue-800 ml-1">使用指南</a>');
     } catch (e) {
       toast.error("操作失败，请检查输入和服务状态。", { duration: 4000 });
       setMsg("");
@@ -65,17 +68,17 @@ export default function Home() {
   const canSubmit = proxy.trim() && origin.trim();
 
   return (
-    <main className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100">
+    <main className="fixed inset-0 flex flex-col items-center justify-center">
       <div className="w-full max-w-xl flex flex-col items-center justify-center gap-10 py-20">
         <input
-          className="w-full px-6 py-5 mb-2 rounded-3xl border-2 border-blue-200 bg-white text-xl text-blue-700 font-mono shadow focus:outline-none focus:border-blue-400 transition"
+          className="w-full px-6 py-4 mb-2 rounded-3xl border-4 border-blue-200 bg-white text-base text-gray-500 font-sans shadow focus:outline-none focus:border-blue-400 transition font-normal placeholder-gray-300 tracking-wide"
           placeholder="请输入域名或IP（反代地址）"
           value={proxy}
           onChange={e => setProxy(e.target.value)}
           disabled={loading}
         />
         <input
-          className="w-full px-6 py-5 mb-4 rounded-3xl border-2 border-green-200 bg-white text-xl text-green-700 font-mono shadow focus:outline-none focus:border-green-400 transition"
+          className="w-full px-6 py-4 mb-4 rounded-3xl border-4 border-green-200 bg-white text-base text-gray-500 font-sans shadow focus:outline-none focus:border-green-400 transition font-normal placeholder-gray-300 tracking-wide"
           placeholder="请输入服务源地址（如 http://10.1.2.3:8080）"
           value={origin}
           onChange={e => setOrigin(e.target.value)}
@@ -89,17 +92,8 @@ export default function Home() {
         >
           {loading ? stage || '处理中...' : '一键配置'}
         </button>
-        {msg && <div className="text-lg font-bold mt-4 text-center text-green-600">{msg}</div>}
-      </div>
-      {/* Nginx服务状态小圆圈 */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 select-none">
-        <span
-          className={`inline-block w-4 h-4 rounded-full border border-gray-300 shadow ${nginxStatus === 'running' ? 'bg-green-500' : nginxStatus === 'stopped' ? 'bg-gray-400' : nginxStatus === 'error' ? 'bg-red-500 animate-pulse' : 'bg-gray-200'}`}
-          title={nginxStatus === 'running' ? 'nginx服务正常' : nginxStatus === 'stopped' ? 'nginx服务停止' : nginxStatus === 'error' ? 'nginx服务异常' : '未知'}
-        ></span>
-        <span className="text-sm text-gray-500">
-          {nginxStatus === 'running' ? 'nginx服务正常' : nginxStatus === 'stopped' ? 'nginx服务停止' : nginxStatus === 'error' ? 'nginx服务异常' : 'nginx状态未知'}
-        </span>
+        {msg && <div className="text-lg font-bold mt-4 text-center text-green-600" dangerouslySetInnerHTML={{__html: msg}} />}
+
       </div>
     </main>
   );

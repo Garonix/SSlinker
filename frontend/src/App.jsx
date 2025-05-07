@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation } from "react
 import Home from "./pages/Home";
 import Cert from "./pages/Cert";
 import Nginx from "./pages/Nginx";
-import Status from "./pages/Status";
+import Guide from "./pages/Guide";
 
 function Navbar() {
   const { pathname } = useLocation();
@@ -11,7 +11,7 @@ function Navbar() {
     { name: "首页", path: "/" },
     { name: "证书管理", path: "/cert" },
     { name: "反向代理", path: "/nginx" },
-    { name: "系统状态", path: "/status" },
+    { name: "使用指南", path: "/guide" },
   ];
   return (
     <nav className="bg-white/90 backdrop-blur border-b border-blue-100 shadow-md px-10 py-3 flex justify-between items-center sticky top-0 z-50">
@@ -39,7 +39,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/cert" element={<Cert />} />
         <Route path="/nginx" element={<Nginx />} />
-        <Route path="/status" element={<Status />} />
+        <Route path="/guide" element={<Guide />} />
       </Routes>
     </Router>
   );

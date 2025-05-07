@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from services.nginx_service import generate_nginx_config, list_nginx_configs, delete_nginx_config, reload_nginx, start_nginx, stop_nginx
+from services.nginx_service import generate_nginx_config, list_nginx_configs, delete_nginx_config, reload_nginx, start_nginx, stop_nginx, read_local_addr, write_local_addr
 
 router = APIRouter()
 
@@ -15,6 +15,20 @@ def create_nginx_config(payload: dict):
 @router.get("/list")
 def get_nginx_config_list():
     return list_nginx_configs()
+
+@router.get("/local_addr")
+def get_local_addr():
+    return {"local_addr": read_local_addr()}
+
+@router.post("/local_addr")
+def set_local_addr(payload: dict):
+    addr = payload.get("local_addr", "")
+    ok = write_local_addr(addr)
+    if ok:
+        return {"success": True, "local_addr": addr}
+    else:
+        raise HTTPException(status_code=500, detail="保存失败")
+
 
 @router.delete("/config")
 def remove_nginx_config(domain: str):

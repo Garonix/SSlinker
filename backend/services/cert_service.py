@@ -144,29 +144,52 @@ def download_cert(domain, type):
 def delete_cert(domain):
     cert_dir = '/certs'
     upload_dir = os.path.join(cert_dir, 'uploads')
-    # 优先删普通/CA证书
-    crt_path = os.path.join(cert_dir, domain + '.crt')
-    key_path = os.path.join(cert_dir, domain + '.key')
     deleted = False
-    if os.path.exists(crt_path):
-        os.remove(crt_path)
-        deleted = True
-    if os.path.exists(key_path):
-        os.remove(key_path)
-        deleted = True
-    # 如果普通目录没有，再删上传目录
-    for ext in ['.crt', '.pem', '.cer']:
-        up_crt_path = os.path.join(upload_dir, domain + ext)
-        if os.path.exists(up_crt_path):
-            os.remove(up_crt_path)
-            deleted = True
-    up_key_path = os.path.join(upload_dir, domain + '.key')
-    if os.path.exists(up_key_path):
-        os.remove(up_key_path)
-        deleted = True
-    if deleted:
-        return {"success": True, "message": "删除成功"}
-    else:
-        return {"success": False, "message": "未找到对应证书"}
+    deleted_files = []
+    errors = []
 
-# 已移除clear_all_certs函数实现
+    # 普通/CA证书
+    for ext in ['.crt', '.key']:
+        path = os.path.join(cert_dir, domain + ext)
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+                deleted = True
+                deleted_files.append(path)
+        except Exception as e:
+            errors.append(f"删除{path}失败: {e}")
+
+    # 上传目录下的各种证书
+    for ext in ['.crt', '.pem', '.cer', '.key']:
+        path = os.path.join(upload_dir, domain + ext)
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+                deleted = True
+                deleted_files.append(path)
+        except Exception as e:
+            errors.append(f"删除{path}失败: {e}")
+
+    # 删除相关反向代理配置（同名的server_name）
+    try:
+        from services.nginx_service import delete_nginx_config
+        nginx_result = delete_nginx_config(domain)
+        if not nginx_result.get("success"):
+            errors.append(f"删除反代配置失败: {nginx_result.get('message', '')}")
+        elif 'message' in nginx_result:
+            deleted_files.append(f"反代配置: {nginx_result['message']}")
+    except Exception as e:
+        errors.append(f"删除反代配置异常: {e}")
+
+    if deleted:
+        return {
+            "success": True,
+            "message": "删除成功: " + ", ".join(deleted_files),
+            "errors": errors
+        }
+    else:
+        return {
+            "success": False,
+            "message": "未找到对应证书文件",
+            "errors": errors
+        }

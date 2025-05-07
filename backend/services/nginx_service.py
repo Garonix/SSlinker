@@ -1,6 +1,9 @@
+import os
+import re
+import subprocess
+
 # nginx相关服务函数（伪实现，后续补充）
 def generate_nginx_config(cert_domain, server_name, proxy_pass):
-    import os
     # 使用系统默认配置目录
     config_dir = '/etc/nginx/conf.d'
     if not os.path.exists(config_dir):
@@ -23,13 +26,30 @@ def generate_nginx_config(cert_domain, server_name, proxy_pass):
         return {"success": False, "message": f"配置写入成功，但重载失败: {reload_result.get('message', '')}", "config_path": config_path}
     return {"success": True, "config_path": config_path, "message": "配置写入并nginx已重载"}
 
-def list_nginx_configs():
-    import os
-    import re
+def read_local_addr():
+    local_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../local.txt'))
+    if os.path.exists(local_path):
+        try:
+            with open(local_path, 'r', encoding='utf-8') as f:
+                return f.read().strip()
+        except Exception:
+            return ''
+    return ''
+
+def write_local_addr(addr):
+    local_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../local.txt'))
+    try:
+        with open(local_path, 'w', encoding='utf-8') as f:
+            f.write(addr.strip())
+        return True
+    except Exception:
+        return False
+
+def list_nginx_configs():    
     config_dir = '/etc/nginx/conf.d'
     configs = []
     if not os.path.exists(config_dir):
-        return {"configs": []}
+        return {"configs": [], "local_addr": read_local_addr()}
     for fname in os.listdir(config_dir):
         if fname.endswith('.conf'):
             # 恢复域名原样（去掉.conf后缀即可）
@@ -56,10 +76,9 @@ def list_nginx_configs():
                 "proxy_pass": proxy_pass,
                 "config_path": config_path
             })
-    return {"configs": configs}
+    return {"configs": configs, "local_addr": read_local_addr()}
 
 def delete_nginx_config(domain):
-    import os
     config_dir = '/etc/nginx/conf.d'
     config_path = os.path.join(config_dir, f'{domain}.conf')
     if os.path.exists(config_path):
@@ -74,8 +93,6 @@ def delete_nginx_config(domain):
             return {"success": False, "message": f"删除失败: {e}"}
     else:
         return {"success": False, "message": f"配置文件不存在: {config_path}"}
-
-import subprocess
 
 def start_nginx():
     try:

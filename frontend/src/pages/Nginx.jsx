@@ -4,6 +4,8 @@ import ConfirmModal from '../components/ConfirmModal';
 
 const TOAST_DURATION = 3000;
 
+import LocalAddrModal from '../components/LocalAddrModal';
+
 export default function Nginx() {
   const [configs, setConfigs] = useState([]);
   const [listLoading, setListLoading] = useState(false);
@@ -15,6 +17,8 @@ export default function Nginx() {
   const [certLoading, setCertLoading] = useState(false);
   const [selectedRows, setSelectedRows] = useState([]);
   const [confirmModal, setConfirmModal] = useState({ open: false, domains: [] });
+  const [showLocalAddrModal, setShowLocalAddrModal] = useState(false);
+  const [localAddr, setLocalAddr] = useState("");
   const [nginxStatus, setNginxStatus] = useState('unknown');
   const [showTooltip, setShowTooltip] = useState(false);
 
@@ -49,7 +53,8 @@ export default function Nginx() {
       const res = await fetch('/api/nginx/list');
       const data = await res.json();
       setConfigs(data.configs || []);
-    } catch {
+      if ('local_addr' in data) setLocalAddr(data.local_addr || '');
+    } catch (e) {
       setConfigs([]);
     }
     setListLoading(false);
@@ -58,7 +63,33 @@ export default function Nginx() {
   useEffect(() => {
     fetchConfigs();
     fetchCertList();
+    fetchNginxStatus();
+    fetchLocalAddr();
   }, []);
+
+  // 获取本机地址
+  const fetchLocalAddr = async () => {
+    try {
+      const res = await fetch('/api/nginx/local_addr');
+      const data = await res.json();
+      setLocalAddr(data.local_addr || '');
+    } catch {
+      setLocalAddr('');
+    }
+  }
+
+  // 获取nginx服务状态
+  const fetchNginxStatus = async () => {
+    try {
+      const res = await fetch('/api/nginx/status');
+      const data = await res.json();
+      if (data.status === 'running') setNginxStatus('running');
+      else if (data.status === 'stopped') setNginxStatus('stopped');
+      else setNginxStatus('error');
+    } catch {
+      setNginxStatus('error');
+    }
+  }
 
   const handleInput = e => {
     const { name, value } = e.target;
@@ -218,6 +249,25 @@ export default function Nginx() {
     }
   };
 
+  // 复制hosts格式
+  const handleCopyHosts = () => {
+    if (!localAddr || selectedRows.length === 0) {
+      toast.error('请先设置本机地址并选择配置', { duration: TOAST_DURATION });
+      return;
+    }
+    const lines = selectedRows.map(sel => {
+      const cfg = configs.find(c => c.domain === sel);
+      if (!cfg) return null;
+      return `${localAddr} ${cfg.domain}`;
+    }).filter(Boolean);
+    if (lines.length === 0) {
+      toast.error('未找到选中配置', { duration: TOAST_DURATION });
+      return;
+    }
+    navigator.clipboard.writeText(lines.join('\n'));
+    toast.success('已复制到剪贴板', { duration: TOAST_DURATION });
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-start bg-white pt-10 pb-2">
       <Toaster position="top-center" />
@@ -244,6 +294,17 @@ export default function Nginx() {
               </span>
             </div>
             <div className="flex gap-6">
+              
+              <button
+                className="px-10 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 font-bold text-xl transition shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-60"
+                onClick={handleReload}
+                disabled={reloadLoading}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="text-2xl font-bold align-middle" style={{ position: 'relative', top: '-2px' }}>⟳</span>
+                  {reloadLoading ? '重载中...' : '服务重载'}
+                </span>
+              </button>
               <button
                 className="px-10 py-3 bg-green-600 text-white rounded-full hover:bg-green-700 font-bold text-xl transition shadow-lg focus:outline-none focus:ring-2 focus:ring-green-300"
                 onClick={() => setShowForm(true)}
@@ -256,13 +317,14 @@ export default function Nginx() {
                 </span>
               </button>
               <button
-                className="px-10 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 font-bold text-xl transition shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-60"
-                onClick={handleReload}
-                disabled={reloadLoading}
+                className="px-10 py-3 bg-blue-400 text-white rounded-full hover:bg-blue-500 font-bold text-xl transition shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+                onClick={() => setShowLocalAddrModal(true)}
               >
                 <span className="flex items-center gap-2">
-                  <span className="text-2xl font-bold align-middle" style={{ position: 'relative', top: '-2px' }}>⟳</span>
-                  {reloadLoading ? '重载中...' : '服务重载'}
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"></path>
+                  </svg>
+                  本机地址
                 </span>
               </button>
             </div>
@@ -355,6 +417,11 @@ export default function Nginx() {
               disabled={selectedRows.length === 0}
               onClick={handleDeleteSelected}
             >删除</button>
+            <button
+              className={`w-32 mb-4 px-3 py-2 rounded-full font-bold text-base shadow transition-all bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300 ${selectedRows.length === 0 ? 'opacity-60 cursor-not-allowed' : ''}`}
+              disabled={selectedRows.length === 0}
+              onClick={handleCopyHosts}
+            >复制</button>
           </div>
         </div>
       </div>
@@ -369,7 +436,7 @@ export default function Nginx() {
               </h3>
               <form className="flex flex-col w-[320px]" onSubmit={e => { e.preventDefault(); handleCreate(); }}>
                 <div className="mb-5 text-left">
-                  <label className="block text-gray-700 font-semibold mb-2">选择证书 <span className="text-gray-400 text-sm">（必选）</span></label>
+                  <label className="block text-gray-700 font-semibold mb-2">选择证书 <span className="text-gray-400 text-sm"></span></label>
                   <select
                     name="cert_domain"
                     value={form.cert_domain}
@@ -385,18 +452,18 @@ export default function Nginx() {
                 </div>
                 {showServerNameInput && (
                   <div className="mb-5 text-left">
-                    <label className="block text-gray-700 font-semibold mb-2">反代地址 <span className="text-gray-400 text-sm">（必填）</span></label>
+                    <label className="block text-gray-700 font-semibold mb-2">反代地址 <span className="text-gray-400 text-sm"></span></label>
                     <input
                       name="server_name"
                       value={form.server_name}
                       onChange={handleInput}
                       className="w-full px-3 py-2 rounded-lg border-2 border-green-200 focus:outline-none focus:border-green-400 bg-white text-base text-green-700 transition"
-                      placeholder="如 example.com、*.gezixa.com 或 192.168.1.1"
+                      placeholder="如 example.com、192.168.1.1"
                     />
                   </div>
                 )}
                 <div className="mb-5 text-left">
-                  <label className="block text-gray-700 font-semibold mb-2">源地址 <span className="text-gray-400 text-sm">（必填）</span></label>
+                  <label className="block text-gray-700 font-semibold mb-2">源地址 <span className="text-gray-400 text-sm"></span></label>
                   <input
                     name="proxy_pass"
                     value={form.proxy_pass}
@@ -423,6 +490,26 @@ export default function Nginx() {
           </div>
         </div>
       )}
+      {/* 本机地址弹窗 */}
+      <LocalAddrModal
+        open={showLocalAddrModal}
+        onClose={() => setShowLocalAddrModal(false)}
+        onSubmit={async addr => {
+          try {
+            const res = await fetch('/api/nginx/local_addr', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ local_addr: addr })
+            });
+            const data = await res.json();
+            setLocalAddr(data.local_addr || addr);
+            toast.success('本机地址已设置', { duration: TOAST_DURATION });
+          } catch {
+            toast.error('本机地址保存失败', { duration: TOAST_DURATION });
+          }
+          setShowLocalAddrModal(false);
+        }}
+      />
       {/* 现代化确认弹窗 */}
       <ConfirmModal
         open={confirmModal.open}

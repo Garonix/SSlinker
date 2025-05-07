@@ -255,6 +255,15 @@ export default function Cert() {
     fetchCerts();
   };
 
+  // 判断是否选中了根证书
+  const hasCASelected = selectedRows.some(row => {
+    const cert = sortedCerts.find(c => (c.domain || c.name) === row);
+    return cert && isCA(cert);
+  });
+
+  // 删除按钮置灰逻辑：只要选中了根证书就置灰
+  const canDeleteSelected = selectedRows.length > 0 && !hasCASelected;
+
   // 删除选中证书
   const handleDeleteSelected = async () => {
     if (selectedRows.length === 0) return;
@@ -433,16 +442,10 @@ export default function Cert() {
               }}
             >下载</button>
             <button
-              className={`w-32 mb-4 px-3 py-2 rounded-full font-bold text-base shadow transition-all ${selectedRows.length > 0 ? 'bg-red-500 text-white hover:bg-red-700' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}
-              disabled={selectedRows.length === 0}
+              className={`w-32 mb-4 px-3 py-2 rounded-full font-bold text-base shadow transition-all ${canDeleteSelected ? 'bg-red-500 text-white hover:bg-red-700' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}
+              disabled={!canDeleteSelected}
               onClick={handleDeleteSelected}
             >删除</button>
-          </div>
-        </div>
-      </div>
-      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-lg px-6 py-8 mt-8">
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-4">
           </div>
         </div>
       </div>
