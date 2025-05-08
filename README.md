@@ -164,7 +164,7 @@ http://localhost:8089
 
 ## 反馈与贡献
 
-- 如有建议或问题，欢迎提交 [Issue](https://github.com/your-org/SSlinker/issues) 或 PR
+- 如有建议或问题，欢迎提交 [Issue](https://github.com/Garonix/SSlinker/issues) 或 PR
 - 欢迎 Star & Fork！
 
 ---
