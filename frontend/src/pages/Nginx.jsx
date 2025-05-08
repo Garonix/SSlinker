@@ -266,7 +266,10 @@ export default function Nginx() {
   // 复制hosts格式
   const handleCopyHosts = () => {
     if (!window.isSecureContext) {
-      toast.error('当前页面非安全上下文，无法复制到剪贴板', { duration: TOAST_DURATION });
+      toast.error('浏览器安全限制\n请先反代本服务为https', { 
+        duration: TOAST_DURATION,
+        style: { whiteSpace: 'pre-line' }
+      });
       return;
     }
     if (!localAddr || selectedRows.length === 0) {

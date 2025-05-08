@@ -26,7 +26,7 @@ def generate_nginx_config(cert_domain, server_name, proxy_pass):
     return {"success": True, "config_path": config_path, "message": "配置写入并nginx已重载"}
 
 def read_local_addr():
-    local_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../local.txt'))
+    local_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../config/local.txt'))
     if os.path.exists(local_path):
         try:
             with open(local_path, 'r', encoding='utf-8') as f:
@@ -36,7 +36,7 @@ def read_local_addr():
     return ''
 
 def write_local_addr(addr):
-    local_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../local.txt'))
+    local_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../config/local.txt'))
     try:
         with open(local_path, 'w', encoding='utf-8') as f:
             f.write(addr.strip())

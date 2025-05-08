@@ -53,7 +53,6 @@ def nginx_status():
         # systemctl 检查
         result = subprocess.run(['systemctl', 'is-active', 'nginx'], capture_output=True, text=True)
         status = result.stdout.strip()
-        print("1234567")
         if status == 'active':
             return {"status": "running"}
         elif status == 'inactive':
@@ -66,7 +65,6 @@ def nginx_status():
         # service 检查
         result = subprocess.run(['service', 'nginx', 'status'], capture_output=True, text=True)
         status = result.stdout.strip()
-        print(f"status: {status}")
         if "running" in status:
             return {"status": "running"}
         elif "not" in status:

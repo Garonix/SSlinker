@@ -9,6 +9,7 @@ services:
     volumes:
       - ./docker/certs:/certs
       - ./docker/nginx:/etc/nginx/conf.d
+      - ./docker/config:/app/backend/config
     environment:
       - PYTHONUNBUFFERED=1
     restart: unless-stopped

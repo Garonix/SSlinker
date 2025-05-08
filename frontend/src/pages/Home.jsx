@@ -34,22 +34,22 @@ export default function Home() {
   // 一键自动化：生成CA、生成证书、创建反代
   const handleOneClick = async () => {
     setLoading(true);
-    setStage("检查根CA证书");
+    setStage("检查\nCA证书");
     setMsg("");
     try {
       // 检查CA是否已存在
       const caExists = await checkCAExists();
       if (!caExists) {
-        setStage("生成根CA证书");
+        setStage("生成\nCA证书");
         await fetch("/api/cert/ca", { method: "POST" });
       }
-      setStage("生成域名证书");
+      setStage("生成\n域名证书");
       // 2. 生成证书 (域名或IP )
       const params = new URLSearchParams();
       params.append('domain', proxy);
       // 
       await fetch(`/api/cert/domain?${params.toString()}`, { method: "POST" });
-      setStage("创建反向代理");
+      setStage("创建\n反向代理");
       // 3. 创建反向代理
       await fetch("/api/nginx/config", {
         method: "POST",
@@ -60,7 +60,7 @@ export default function Home() {
       setTimeout(downloadCA, 300);
       setMsg('success');
     } catch (e) {
-      toast.error("操作失败，请检查输入和服务状态。", { duration: 4000 });
+      toast.error("操作失败\n请检查输入和服务状态。", { duration: 4000 });
       setMsg("");
       setStage("");
       setLoading(false);
@@ -146,8 +146,7 @@ export default function Home() {
             >
               {loading ? (
                 <span className="flex flex-col items-center gap-2 animate-pulse">
-                  <svg className="w-12 h-12 text-white animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-70" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
-                  <span>{stage || '处理中...'}</span>
+                  <span className="text-2xl" style={{whiteSpace:'pre-line'}}>{stage || '处理中...'}</span>
                 </span>
               ) : (
                 <span className="animate-fade-in">一键配置</span>
