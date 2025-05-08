@@ -612,7 +612,7 @@ export default function Nginx() {
           </div>
         </div>
       )}
-      {/* 现代化确认弹窗 */}
+      {/* 确认弹窗 */}
       {confirmModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-xs border border-green-200 animate-nginx-modal">

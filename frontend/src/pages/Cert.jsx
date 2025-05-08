@@ -16,7 +16,7 @@ function isUploaded(cert) {
   return cert.uploaded === true || cert.path?.includes('/uploads');
 }
 
-// 现代化确认弹窗组件
+// 确认弹窗组件
 function ConfirmModal({ open, title, message, onConfirm, onCancel }) {
   if (!open) return null;
   return (
@@ -47,7 +47,7 @@ export default function Cert() {
   const [uploading, setUploading] = useState(false);
   const [uploadCertName, setUploadCertName] = useState('');
 
-  // 现代化确认弹窗状态
+  // 确认弹窗状态
   const [confirmModal, setConfirmModal] = useState({ open: false, cert: null });
 
   // 证书列表多选状态
@@ -573,7 +573,7 @@ export default function Cert() {
           </div>
         </div>
       )}
-      {/* 现代化确认弹窗 */}
+      {/* 确认弹窗 */}
       <ConfirmModal
         open={confirmModal.open}
         title="删除证书"

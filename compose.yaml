@@ -1,6 +1,6 @@
 services:
   app:
-    image: sslinker
+    image: izege/sslinker
     container_name: sslinker
     ports:
       - "8089:8000"
