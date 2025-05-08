@@ -6,6 +6,22 @@ const TOAST_DURATION = 3000;
 
 export default function Nginx() {
   const [configs, setConfigs] = useState([]);
+  // 分页相关
+  const PAGE_SIZE = 7;
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(configs.length / PAGE_SIZE));
+  const pagedConfigs = configs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) setPage(newPage);
+  };
+  const handlePageJump = (e) => {
+    let v = Number(e.target.value);
+    if (!v) v = 1;
+    if (v > totalPages) v = totalPages;
+    if (v < 1) v = 1;
+    setPage(v);
+  };
+
   const [listLoading, setListLoading] = useState(false);
   const [form, setForm] = useState({ cert_domain: '', server_name: '', proxy_pass: '' });
   const [creating, setCreating] = useState(false);
@@ -298,7 +314,7 @@ export default function Nginx() {
             <div className="flex gap-6">
 
               <button
-                className="px-10 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 font-bold text-xl transition shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-60"
+                className="px-10 py-3 bg-blue-500 text-white rounded-full hover:bg-blue-600 font-bold text-xl transition shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-60"
                 onClick={handleReload}
                 disabled={reloadLoading}
               >
@@ -364,12 +380,12 @@ export default function Nginx() {
                     <tr>
                       <td colSpan={3} className="text-gray-400 text-center py-6">加载中...</td>
                     </tr>
-                  ) : configs.length === 0 ? (
+                  ) : pagedConfigs.length === 0 ? (
                     <tr>
                       <td colSpan={3} className="text-gray-400 text-center py-10 text-lg">暂无配置</td>
                     </tr>
-                  ) : configs.map(cfg => (
-                    <tr key={cfg.domain} className="border-b last:border-none hover:bg-green-50 transition-all group animate-nginx-row" style={{animationDelay: `${0.07 + (0.04 * configs.indexOf(cfg))}s`, animationFillMode: 'backwards'}}>
+                  ) : pagedConfigs.map(cfg => (
+                    <tr key={cfg.domain} className="border-b last:border-none hover:bg-green-50 transition-all group animate-nginx-row" style={{ animationDelay: `${0.07 + (0.04 * configs.indexOf(cfg))}s`, animationFillMode: 'backwards' }}>
                       <td className="py-4 px-2 text-center">
                         <span className="inline-flex items-center justify-center">
                           <input
@@ -391,12 +407,44 @@ export default function Nginx() {
                       >
                         {cfg.domain}
                       </td>
-                      <td className="py-4 px-4 text-left font-mono text-blue-900 text-lg">{cfg.proxy_pass}</td>
+                      <td className="py-4 px-4 text-left font-mono text-green-900 text-lg">{cfg.proxy_pass}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            {/* 分页控件 */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-4 mt-6 mb-2">
+                <button
+                  className={`px-5 py-2 rounded-full font-bold text-base shadow-md transition-all duration-150 
+                    ${page === 1 ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-green-300 text-white hover:bg-green-500 active:scale-95'}`}
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page === 1}
+                >
+                  上一页
+                </button>
+                <span className="text-base text-gray-700 font-bold">第</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={totalPages}
+                  value={page}
+                  onChange={handlePageJump}
+                  className="w-14 px-2 py-1 rounded-lg border-2 border-green-200 text-center font-extrabold text-lg mx-1 focus:border-blue-400 focus:outline-none transition bg-white shadow-sm"
+                  style={{ boxShadow: '0 2px 8px rgba(34,197,94,0.08)' }}
+                />
+                <span className="text-base text-gray-700 font-bold">/ {totalPages} 页</span>
+                <button
+                  className={`px-5 py-2 rounded-full font-bold text-base shadow-md transition-all duration-150 
+                    ${page === totalPages ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-green-300 text-white hover:bg-green-500 active:scale-95'}`}
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page === totalPages}
+                >
+                  下一页
+                </button>
+              </div>
+            )}
           </div>
         </div>
         {/* 操作按钮卡片 */}
@@ -406,7 +454,7 @@ export default function Nginx() {
             style={{ position: 'sticky', top: 280, zIndex: 20, height: 240 }}
           >
             <button
-              className="w-32 mb-4 px-3 py-2 rounded-full font-bold text-base shadow transition-all bg-blue-600 text-white hover:bg-blue-700"
+              className="w-32 mb-4 px-3 py-2 rounded-full font-bold text-base shadow transition-all bg-blue-400 text-white hover:bg-blue-600"
               onClick={handleRefresh}
             >刷新</button>
             <button

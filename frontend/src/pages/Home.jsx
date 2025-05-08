@@ -7,6 +7,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [stage, setStage] = useState("");
   const [msg, setMsg] = useState("");
+  // 修复hooks顺序问题，将hover状态放到组件顶层
+  const [hover, setHover] = useState(false);
 
   // 自动下载CA证书
   const downloadCA = () => {
@@ -54,25 +56,26 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cert_domain: proxy, server_name: proxy, proxy_pass: origin })
       });
-      setStage("全部完成，正在下载CA证书...");
+      setStage("success");
       setTimeout(downloadCA, 300);
-      setMsg('成功！查看<a href="/nginx" class="text-blue-600 underline hover:text-blue-800 ml-1">反向代理</a>');
+      setMsg('success');
     } catch (e) {
       toast.error("操作失败，请检查输入和服务状态。", { duration: 4000 });
       setMsg("");
+      setStage("");
+      setLoading(false);
     }
-    setStage("");
-    setLoading(false);
   };
+
 
   const canSubmit = proxy.trim() && origin.trim();
 
   return (
     <main className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50 animate-fade-in">
-      <div className="w-full max-w-xl flex flex-col items-center justify-center gap-10 py-16 px-2 sm:px-0 animate-fade-in-up" style={{animationDelay:'0.1s',animationFillMode:'backwards'}}>
-        
+      <div className="w-full max-w-xl flex flex-col items-center justify-center gap-10 py-16 px-2 sm:px-0 animate-fade-in-up" style={{ animationDelay: '0.1s', animationFillMode: 'backwards' }}>
+
         {/* 输入卡片 */}
-        <div className="w-full bg-white/90 rounded-3xl shadow-2xl px-8 py-10 flex flex-col gap-7 items-center animate-fade-in-up" style={{animationDelay:'0.18s',animationFillMode:'backwards'}}>
+        <div className="w-full bg-white/90 rounded-3xl shadow-2xl px-8 py-10 flex flex-col gap-7 items-center animate-fade-in-up" style={{ animationDelay: '0.18s', animationFillMode: 'backwards' }}>
           <input
             className="w-full px-6 py-4 rounded-2xl border-4 border-blue-400 bg-white text-base text-gray-700 font-sans shadow focus:outline-none focus:border-blue-500 transition-all duration-200 font-normal placeholder-gray-300 tracking-wide focus:scale-[1.03] hover:shadow-lg"
             placeholder="请输入域名或IP (反代地址 )"
@@ -105,22 +108,53 @@ export default function Home() {
             }}
             disabled={loading}
           />
-          <button
-            className={`w-44 h-44 flex items-center justify-center rounded-full text-2xl font-extrabold shadow-2xl bg-gradient-to-br from-blue-600 via-green-500 to-green-600 text-white border-4 border-gray-200 focus:outline-none hover:from-blue-800 hover:via-green-600 hover:to-green-800 hover:shadow-[0_8px_32px_rgba(34,197,94,0.25)] hover:scale-110 active:scale-95 transition-all duration-300 animate-glow ${loading || !canSubmit ? 'opacity-60 cursor-not-allowed' : ''}`}
-            style={{ fontSize: '1.7rem', letterSpacing: '0.08em', boxShadow: '0 8px 32px rgba(34,197,94,0.15)' }}
-            disabled={loading || !canSubmit}
-            onClick={handleOneClick}
-          >
-            {loading ? (
-              <span className="flex flex-col items-center gap-2 animate-pulse">
-                <svg className="w-12 h-12 text-white animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-70" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
-                <span>{stage || '处理中...'}</span>
+          {stage === 'success' ? (
+            <button
+              className={`w-44 h-44 flex items-center justify-center rounded-full text-3xl font-extrabold focus:outline-none transition-all duration-300 shadow-xl
+                ${hover
+                  ? 'bg-gradient-to-br via-cyan-400 from-blue-500 to-teal-400 scale-110'
+                  : 'bg-gradient-to-br from-green-400 via-cyan-400 to-teal-400 scale-100'
+                }`}
+              style={{
+                letterSpacing: '0.08em',
+                WebkitFontSmoothing: 'antialiased',
+                boxShadow: '0 8px 32px 0 rgba(34,197,94,0.18), 0 2px 8px 0 rgba(0,0,0,0.10), inset 0 1px 8px 1px rgba(255,255,255,0.18)'
+              }}
+              onMouseEnter={() => setHover(true)}
+              onMouseLeave={() => setHover(false)}
+              onClick={() => hover && (window.location.href = '/nginx')}
+            >
+              <span className="flex flex-col items-center gap-2 animate-fade-in">
+                {hover ? (
+                  <svg className="w-14 h-14 text-white mb-2 drop-shadow-xl" fill="none" viewBox="0 0 24 24">
+                    <path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                ) : (
+                  <svg className="w-14 h-14 text-white mb-2 drop-shadow-xl" fill="none" viewBox="0 0 24 24">
+                    <path d="M7 13l3 3 7-7" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+                <span className="text-white font-extrabold text-3xl tracking-wide select-none" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>{hover ? '反向代理' : '成功'}</span>
               </span>
-            ) : (
-              <span className="animate-fade-in">一键配置</span>
-            )}
-          </button>
-          {msg && <div className="text-lg font-bold mt-4 text-center text-green-600 animate-fade-in" dangerouslySetInnerHTML={{ __html: msg }} />}
+            </button>
+          ) : (
+            <button
+              className={`w-44 h-44 flex items-center justify-center rounded-full text-2xl font-extrabold shadow-2xl bg-gradient-to-br from-blue-600 via-green-500 to-green-600 text-white border-4 border-gray-200 focus:outline-none hover:from-blue-800 hover:via-green-600 hover:to-green-800 hover:shadow-[0_8px_32px_rgba(34,197,94,0.25)] hover:scale-110 active:scale-95 transition-all duration-300 animate-glow ${loading || !canSubmit ? 'opacity-60 cursor-not-allowed' : ''}`}
+              style={{ fontSize: '1.7rem', letterSpacing: '0.08em', boxShadow: '0 8px 32px rgba(34,197,94,0.15)' }}
+              disabled={loading || !canSubmit}
+              onClick={handleOneClick}
+            >
+              {loading ? (
+                <span className="flex flex-col items-center gap-2 animate-pulse">
+                  <svg className="w-12 h-12 text-white animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-70" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
+                  <span>{stage || '处理中...'}</span>
+                </span>
+              ) : (
+                <span className="animate-fade-in">一键配置</span>
+              )}
+            </button>
+          )}
+
         </div>
       </div>
       {/* 动画样式 */}

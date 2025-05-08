@@ -1,6 +1,10 @@
+from backend.services.nginx_service import delete_nginx_config
+from fastapi import HTTPException
+from fastapi.responses import FileResponse
 import os
 import subprocess
 import shutil
+import tempfile
 
 def generate_ca_cert():
     ca_dir = '/certs'
@@ -26,7 +30,6 @@ def generate_ca_cert():
         return {"success": False, "message": f"生成失败: {e}"}
 
 def generate_domain_cert(domain, ip=None):
-    import tempfile
     cert_dir = '/certs'
     os.makedirs(cert_dir, exist_ok=True)
     key_path = os.path.join(cert_dir, f'{domain}.key')
@@ -85,10 +88,8 @@ async def upload_cert(file, key, name=None):
     key_save_path = os.path.join(upload_dir, base_name + '.key')
     try:
         with open(cert_save_path, "wb") as buffer:
-            import shutil
             shutil.copyfileobj(file.file, buffer)
         with open(key_save_path, "wb") as buffer:
-            import shutil
             shutil.copyfileobj(key.file, buffer)
         return {"success": True, "message": "上传成功"}
     except Exception as e:
@@ -133,14 +134,12 @@ def list_certs():
 
 # 支持type=cert/key下载不同文件
 def download_cert(domain, type):
-    from fastapi.responses import FileResponse
     cert_dir = '/certs'
     if type == 'key':
         file_path = os.path.join(cert_dir, f'{domain}.key')
     else:
         file_path = os.path.join(cert_dir, f'{domain}.crt')
     if not os.path.exists(file_path):
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="文件不存在")
     return FileResponse(file_path, filename=os.path.basename(file_path), media_type='application/octet-stream')
 
@@ -175,7 +174,6 @@ def delete_cert(domain):
 
     # 删除相关反向代理配置 (同名的server_name )
     try:
-        from backend.services.nginx_service import delete_nginx_config
         nginx_result = delete_nginx_config(domain)
         if not nginx_result.get("success"):
             errors.append(f"删除反代配置失败: {nginx_result.get('message', '')}")

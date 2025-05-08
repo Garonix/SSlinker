@@ -11,7 +11,7 @@ export default function Guide() {
         </div>
 
         {/* 基本使用流程卡片 */}
-        <div className="relative flex bg-green-50/80 border-l-8 border-green-400 rounded-2xl shadow-lg px-8 py-7 items-start animate-guide-card" style={{animationDelay:'0.15s', animationFillMode:'backwards'}}>
+        <div className="relative flex bg-green-50/80 border-l-8 border-green-400 rounded-2xl shadow-lg px-8 py-7 items-start animate-guide-card" style={{ animationDelay: '0.15s', animationFillMode: 'backwards' }}>
           <div className="absolute -left-5 top-5 bg-green-400 rounded-full w-4 h-4 shadow-md hidden sm:block"></div>
           <div className="flex-1">
             <h3 className="text-xl font-bold mb-3 text-green-700 flex items-center gap-2">
@@ -27,7 +27,7 @@ export default function Guide() {
 
         {/* 各系统添加CA证书卡片 */
 
-        <style>{`
+          <style>{`
           @keyframes guide-fade-in {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -48,7 +48,7 @@ export default function Guide() {
             box-shadow: 0 12px 36px rgba(34,197,94,0.18), 0 4px 16px rgba(34,197,94,0.16);
           }
         `}</style>}
-        <div className="relative flex bg-blue-50/80 border-l-8 border-blue-400 rounded-2xl shadow-lg px-8 py-7 items-start animate-guide-card" style={{animationDelay:'0.25s', animationFillMode:'backwards'}}>
+        <div className="relative flex bg-blue-50/80 border-l-8 border-blue-400 rounded-2xl shadow-lg px-8 py-7 items-start animate-guide-card" style={{ animationDelay: '0.25s', animationFillMode: 'backwards' }}>
           <div className="absolute -left-5 top-5 bg-blue-400 rounded-full w-4 h-4 shadow-md hidden sm:block"></div>
           <div className="flex-1">
             <h3 className="text-xl font-bold mb-3 text-blue-700 flex items-center gap-2">
@@ -65,7 +65,7 @@ export default function Guide() {
         </div>
 
         {/* hosts卡片 */}
-        <div className="relative flex bg-yellow-50/80 border-l-8 border-yellow-400 rounded-2xl shadow-lg px-8 py-7 items-start animate-guide-card" style={{animationDelay:'0.35s', animationFillMode:'backwards'}}>
+        <div className="relative flex bg-yellow-50/80 border-l-8 border-yellow-400 rounded-2xl shadow-lg px-8 py-7 items-start animate-guide-card" style={{ animationDelay: '0.35s', animationFillMode: 'backwards' }}>
           <div className="absolute -left-5 top-5 bg-yellow-400 rounded-full w-4 h-4 shadow-md hidden sm:block"></div>
           <div className="flex-1">
             <h3 className="text-xl font-bold mb-3 text-yellow-700 flex items-center gap-2">
@@ -80,7 +80,7 @@ export default function Guide() {
         </div>
 
         {/* 温馨提示卡片 */}
-        <div className="relative flex bg-gradient-to-r from-gray-50 to-gray-100 border-l-8 border-gray-400 rounded-2xl shadow-lg px-8 py-7 items-start animate-guide-card" style={{animationDelay:'0.45s', animationFillMode:'backwards'}}>
+        <div className="relative flex bg-gradient-to-r from-gray-50 to-gray-100 border-l-8 border-gray-400 rounded-2xl shadow-lg px-8 py-7 items-start animate-guide-card" style={{ animationDelay: '0.45s', animationFillMode: 'backwards' }}>
           <div className="absolute -left-5 top-5 bg-gray-400 rounded-full w-4 h-4 shadow-md hidden sm:block"></div>
           <div className="flex-1">
             <h3 className="text-xl font-bold mb-3 text-gray-700 flex items-center gap-2">
@@ -95,7 +95,7 @@ export default function Guide() {
         </div>
 
         {/* 关于项目卡片 */}
-        <div className="relative flex bg-purple-50/80 border-l-8 border-purple-400 rounded-2xl shadow-lg px-8 py-7 items-start animate-guide-card" style={{animationDelay:'0.55s', animationFillMode:'backwards'}}>
+        <div className="relative flex bg-purple-50/80 border-l-8 border-purple-400 rounded-2xl shadow-lg px-8 py-7 items-start animate-guide-card" style={{ animationDelay: '0.55s', animationFillMode: 'backwards' }}>
           <div className="absolute -left-5 top-5 bg-purple-400 rounded-full w-4 h-4 shadow-md hidden sm:block"></div>
           <div className="flex-1">
             <h3 className="text-xl font-bold mb-3 text-purple-700 flex items-center gap-2">

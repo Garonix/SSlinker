@@ -50,16 +50,17 @@ def reload():
 @router.get("/status")
 def nginx_status():
     try:
-        # systemctl 检查nginx服务状态
+        # systemctl 检查
         result = subprocess.run(['systemctl', 'is-active', 'nginx'], capture_output=True, text=True)
         status = result.stdout.strip()
+        print("1234567")
         if status == 'active':
             return {"status": "running"}
         elif status == 'inactive':
             return {"status": "stopped"}
     
     except Exception:
-        return {"status": "error"}
+        pass
     
     try:
         # service 检查

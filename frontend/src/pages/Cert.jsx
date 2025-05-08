@@ -103,8 +103,8 @@ export default function Cert() {
     document.body.appendChild(crtLink);
     crtLink.click();
     document.body.removeChild(crtLink);
-    // 下载key (如果有 )
-    if (cert.key) {
+    // 下载证书密钥, CA证书不下载
+    if (cert.key && cert.type !== '根证书') {
       const keyUrl = isOther
         ? crtUrl.replace(/\.(crt|pem|cer)$/i, '.key')
         : `/api/cert/download?type=key&domain=${encodeURIComponent(cert.domain || cert.name)}`;
@@ -234,6 +234,25 @@ export default function Cert() {
     return (a.domain || a.name || '').localeCompare(b.domain || b.name || '');
   });
 
+  // 分页相关
+  const PAGE_SIZE = 7;
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(sortedCerts.length / PAGE_SIZE));
+  const pagedCerts = sortedCerts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) setPage(newPage);
+  };
+  const handlePageJump = (e) => {
+    let v = Number(e.target.value);
+    if (!v) v = 1;
+    if (v > totalPages) v = totalPages;
+    if (v < 1) v = 1;
+    setPage(v);
+  };
+
+  // 翻页时自动清空多选
+  useEffect(() => { setSelectedRows([]); }, [page]);
+
   // 列表多选相关
   const handleSelectAll = () => {
     if (selectedRows.length === sortedCerts.length) {
@@ -261,8 +280,10 @@ export default function Cert() {
     return cert && isCA(cert);
   });
 
-  // 删除按钮置灰逻辑：只要选中了根证书就置灰
-  const canDeleteSelected = selectedRows.length > 0 && !hasCASelected;
+  // 删除按钮置灰逻辑：只要选中了根证书就置灰，全选所有证书则不置灰
+  const allCertCount = sortedCerts.length;
+  const allSelected = selectedRows.length === allCertCount;
+  const canDeleteSelected = selectedRows.length > 0 && (!hasCASelected || allSelected);
 
   // 删除选中证书
   const handleDeleteSelected = async () => {
@@ -308,8 +329,12 @@ export default function Cert() {
         <div className="flex-1 flex flex-col items-center justify-center bg-orange-50 rounded-xl shadow-sm py-6 px-4 animate-cert-card">
           <h3 className="text-2xl font-bold text-orange-600 mb-6 tracking-wide">域名证书</h3>
           <button
-            className="w-56 h-12 bg-orange-500 text-white rounded-full shadow-lg hover:bg-orange-600 font-bold text-xl transition focus:outline-none focus:ring-2 focus:ring-orange-300 disabled:opacity-60"
-            onClick={openDomainModal}
+            className={`w-56 h-12 rounded-full shadow-lg font-bold text-xl transition focus:outline-none focus:ring-2 focus:ring-orange-300 
+              ${certs.some(cert => cert.type === '根证书')
+                ? 'bg-orange-500 text-white hover:bg-orange-600'
+                : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}
+            onClick={certs.some(cert => cert.type === '根证书') ? openDomainModal : undefined}
+            disabled={!certs.some(cert => cert.type === '根证书')}
           >
             生成域名证书
           </button>
@@ -381,7 +406,7 @@ export default function Cert() {
                     <tr>
                       <td colSpan={3} className="text-gray-400 text-center py-10 text-lg">暂无证书</td>
                     </tr>
-                  ) : sortedCerts.map(cert => (
+                  ) : pagedCerts.map(cert => (
                     <tr key={cert.domain || cert.name} className="border-b last:border-none hover:bg-blue-50 transition-all group animate-cert-row" style={{ animationDelay: `${0.07 + (0.04 * (sortedCerts.indexOf(cert)))}s`, animationFillMode: 'backwards' }}>
                       <td className="py-4 px-2 text-center">
                         <span className="inline-flex items-center justify-center">
@@ -412,9 +437,42 @@ export default function Cert() {
                       </td>
                     </tr>
                   ))}
+
                 </tbody>
               </table>
             </div>
+            {/* 分页控件 */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-4 mt-6 mb-2">
+                <button
+                  className={`px-5 py-2 rounded-full font-bold text-base shadow-md transition-all duration-150 
+        ${page === 1 ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-blue-300 text-white hover:bg-blue-500 active:scale-95'}`}
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page === 1}
+                >
+                  上一页
+                </button>
+                <span className="text-base text-gray-700 font-bold">第</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={totalPages}
+                  value={page}
+                  onChange={handlePageJump}
+                  className="w-14 px-2 py-1 rounded-lg border-2 border-blue-200 text-center font-extrabold text-lg mx-1 focus:border-blue-400 focus:outline-none transition bg-white shadow-sm"
+                  style={{ boxShadow: '0 2px 8px rgba(34,197,94,0.08)' }}
+                />
+                <span className="text-base text-gray-700 font-bold">/ {totalPages} 页</span>
+                <button
+                  className={`px-5 py-2 rounded-full font-bold text-base shadow-md transition-all duration-150 
+        ${page === totalPages ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-blue-300 text-white hover:bg-blue-500 active:scale-95'}`}
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page === totalPages}
+                >
+                  下一页
+                </button>
+              </div>
+            )}
           </div>
         </div>
         {/* 操作按钮浮动卡片 */}

@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
-from backend.api import cert, nginx, system
+from backend.api import cert, nginx
 
 app = FastAPI()
 
@@ -20,7 +20,6 @@ app.add_middleware(
 # 路由注册
 app.include_router(cert.router, prefix="/api/cert")
 app.include_router(nginx.router, prefix="/api/nginx")
-app.include_router(system.router, prefix="/api")
 
 # 静态文件托管 (生产环境 )
 frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "../frontend/dist"))
