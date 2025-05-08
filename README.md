@@ -30,7 +30,7 @@ cd SSlinker
 ```
 
 ### 2. 安装后端依赖
-- Python 3.8+
+- Python 3.10+
 - pip
 
 ```bash
@@ -47,7 +47,7 @@ pip install -r requirements.txt
 ```bash
 cd ../frontend
 npm install
-# 或 yarn install
+# 或 yarn
 ```
 
 ---
@@ -64,7 +64,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 ```bash
 cd frontend
 npm run dev
-# 或 yarn dev
+# 或 yarn run dev
 ```
 
 浏览器访问：http://localhost:5173
@@ -132,8 +132,6 @@ docker compose up -d
 ```
 http://localhost:8089
 ```
-
----
 
 ---
 
