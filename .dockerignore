@@ -1,0 +1,34 @@
+# 忽略本地开发、构建缓存及无关文件
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 虚拟环境
+venv/
+
+# VSCode
+.vscode/
+
+# Node
+node_modules/
+frontend/node_modules/
+
+# 日志和本地配置
+*.log
+local.txt
+
+# git
+.git/
+.gitignore
+
+# 文档和其它不需构建内容
+文档/
+*.md
+
+# 其它
+.DS_Store
+.env
+.env.*

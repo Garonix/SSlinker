@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from services.system_service import get_status, get_logs
+from backend.services.system_service import get_status, get_logs
 
 router = APIRouter()
 

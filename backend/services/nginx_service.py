@@ -19,7 +19,6 @@ def generate_nginx_config(cert_domain, server_name, proxy_pass):
     with open(config_path, 'w', encoding='utf-8') as f:
         f.write(nginx_conf)
     print(f"[nginx配置生成] 写入文件: {config_path}")
-    print(f"[nginx配置内容]\n{nginx_conf}")
     # 自动重载nginx
     reload_result = reload_nginx()
     if not reload_result.get('success'):

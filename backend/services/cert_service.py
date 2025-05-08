@@ -97,6 +97,9 @@ async def upload_cert(file, key, name=None):
 def list_certs():
     cert_dir = '/certs'
     certs = []
+    # 若目录不存在则创建
+    if not os.path.exists(cert_dir):
+        os.makedirs(cert_dir)
     # 普通/CA证书
     for f in os.listdir(cert_dir):
         if f.endswith('.crt'):
@@ -172,7 +175,7 @@ def delete_cert(domain):
 
     # 删除相关反向代理配置 (同名的server_name )
     try:
-        from services.nginx_service import delete_nginx_config
+        from backend.services.nginx_service import delete_nginx_config
         nginx_result = delete_nginx_config(domain)
         if not nginx_result.get("success"):
             errors.append(f"删除反代配置失败: {nginx_result.get('message', '')}")

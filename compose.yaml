@@ -1,0 +1,14 @@
+services:
+  app:
+    image: sslinker
+    container_name: sslinker
+    ports:
+      - "8089:8000"
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/certs:/certs
+      - ./docker/nginx:/etc/nginx/conf.d
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Query, File, UploadFile, Form
 from pydantic import BaseModel
 from typing import List
-from services.cert_service import generate_ca_cert, generate_domain_cert, list_certs, download_cert, delete_cert, upload_cert
+from backend.services.cert_service import generate_ca_cert, generate_domain_cert, list_certs, download_cert, delete_cert, upload_cert
 
 router = APIRouter()
 
@@ -27,7 +27,7 @@ def delete(domain: str = Query(...)):
 
 @router.post("/upload")
 async def upload_cert_api(file: UploadFile = File(...), key: UploadFile = File(...), name: str = Form(None)):
-    from services.cert_service import upload_cert
+    from backend.services.cert_service import upload_cert
     return await upload_cert(file, key, name)
 
 # 批量删除接口，支持POST /api/cert/delete，接收JSON: {"domains": ["domain1", "domain2"]}

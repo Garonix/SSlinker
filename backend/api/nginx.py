@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from services.nginx_service import generate_nginx_config, list_nginx_configs, delete_nginx_config, reload_nginx, start_nginx, stop_nginx, read_local_addr, write_local_addr
+from backend.services.nginx_service import generate_nginx_config, list_nginx_configs, delete_nginx_config, reload_nginx, start_nginx, stop_nginx, read_local_addr, write_local_addr
+import subprocess
 
 router = APIRouter()
 
@@ -48,7 +49,6 @@ def reload():
 
 @router.get("/status")
 def nginx_status():
-    import subprocess
     try:
         # systemctl 检查nginx服务状态
         result = subprocess.run(['systemctl', 'is-active', 'nginx'], capture_output=True, text=True)
@@ -57,7 +57,20 @@ def nginx_status():
             return {"status": "running"}
         elif status == 'inactive':
             return {"status": "stopped"}
-        else:
-            return {"status": "error"}
+    
+    except Exception:
+        return {"status": "error"}
+    
+    try:
+        # service 检查
+        result = subprocess.run(['service', 'nginx', 'status'], capture_output=True, text=True)
+        status = result.stdout.strip()
+        print(f"status: {status}")
+        if "running" in status:
+            return {"status": "running"}
+        elif "not" in status:
+            return {"status": "stopped"}
+        return {"status": "error"}
+    
     except Exception:
         return {"status": "error"}

@@ -249,6 +249,10 @@ export default function Nginx() {
 
   // 复制hosts格式
   const handleCopyHosts = () => {
+    if (!window.isSecureContext) {
+      toast.error('当前页面非安全上下文，无法复制到剪贴板', { duration: TOAST_DURATION });
+      return;
+    }
     if (!localAddr || selectedRows.length === 0) {
       toast.error('请先设置本机IP并选择配置', { duration: TOAST_DURATION });
       return;
@@ -419,7 +423,7 @@ export default function Nginx() {
               className={`w-32 mb-4 px-3 py-2 rounded-full font-bold text-base shadow transition-all ${selectedRows.length > 0 ? 'bg-blue-300 text-white hover:bg-blue-400' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}
               disabled={selectedRows.length === 0}
               onClick={handleCopyHosts}
-            >复制</button>
+            >复制hosts</button>
           </div>
         </div>
       </div>
