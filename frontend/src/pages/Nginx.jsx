@@ -35,6 +35,7 @@ export default function Nginx() {
   const [localAddr, setLocalAddr] = useState("");
   const [nginxStatus, setNginxStatus] = useState('unknown');
   const [showTooltip, setShowTooltip] = useState(false);
+  const [showCopyHostsModal, setShowCopyHostsModal] = useState(false);
 
   useEffect(() => {
     fetch('/api/nginx/status')
@@ -338,7 +339,7 @@ export default function Nginx() {
                 </span>
               </button>
               <button
-                className="px-10 py-3 bg-gradient-to-r from-blue-500 to-sky-400 text-white rounded-full hover:from-blue-600 hover:to-sky-500 font-bold text-xl transition shadow-lg focus:outline-none focus:ring-2 focus:ring-sky-300"
+                className="px-10 py-3 bg-gradient-to-r from-sky-500 to-green-400 text-white rounded-full hover:from-blue-600 hover:via-green-500 hover:to-sky-500 font-bold text-xl transition shadow-lg focus:outline-none focus:ring-2 focus:ring-sky-300"
                 onClick={() => setShowLocalAddrModal(true)}
               >
                 <span className="flex items-center gap-2">
@@ -471,10 +472,27 @@ export default function Nginx() {
               onClick={handleDeleteSelected}
             >删除</button>
             <button
-              className={`w-32 mb-4 px-3 py-2 rounded-full font-bold text-base shadow transition-all ${selectedRows.length > 0 ? 'bg-blue-300 text-white hover:bg-blue-400' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}
+              className={`w-32 mb-4 px-3 py-2 rounded-full font-bold text-base shadow transition-all ${selectedRows.length > 0 ? 'bg-gradient-to-r from-sky-500 to-green-400 text-white hover:from-blue-600 hover:via-green-500 hover:to-sky-500' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}
+
               disabled={selectedRows.length === 0}
-              onClick={handleCopyHosts}
-            >复制hosts</button>
+              onClick={() => {
+                if (!window.isSecureContext) {
+                  toast.error('浏览器安全限制\n请先反代本服务为https', {
+                    duration: TOAST_DURATION,
+                    style: { whiteSpace: 'pre-line' }
+                  });
+                  setShowTooltip(true);
+                  setTimeout(() => setShowTooltip(false), 2500);
+                  return;
+                }
+                setShowCopyHostsModal(true);
+              }}
+            >打开hosts</button>
+            {showTooltip && (
+              <div className="absolute z-50 left-1/2 transform -translate-x-1/2 mt-2 px-4 py-2 bg-yellow-100 border border-yellow-300 text-yellow-800 text-sm rounded-lg shadow animate-nginx-fade-in" style={{whiteSpace:'pre-line'}}>
+                当前为非安全上下文，无法访问剪贴板\n请先将本服务通过https代理后再操作
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -483,7 +501,7 @@ export default function Nginx() {
           <div className="bg-green-50 rounded-2xl p-8 shadow-xl border border-green-200 animate-nginx-modal" style={{ minWidth: 0 }}>
             <div className="flex flex-col items-center">
               <h3 className="text-2xl font-bold text-green-700 mb-6 tracking-wide flex items-center w-[320px]">
-                <span className="mr-2">配置生成</span>
+                <span className="mr-2">添加配置</span>
                 <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-lg border border-green-200 font-semibold">自定义</span>
                 <button className="ml-auto text-gray-400 hover:text-gray-700 text-2xl font-bold px-2" onClick={() => setShowForm(false)}>&times;</button>
               </h3>
@@ -608,6 +626,40 @@ export default function Nginx() {
                 className={`px-5 py-2 bg-blue-500 text-white rounded-full font-bold ${localAddr.trim() ? 'hover:bg-blue-600' : 'opacity-60 cursor-not-allowed'}`}
                 disabled={!localAddr.trim()}
               >确定</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* hosts复制弹窗 */}
+      {showCopyHostsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-xs animate-nginx-modal">
+            <div className="font-bold text-lg mb-4 text-blue-700">提示</div>
+            <div className="mb-6 text-gray-700 text-base break-words">
+              请按下 <span className="font-bold text-blue-600">windows + R</span> 键打开 <span className="font-bold"><br></br>运行</span> 面板，输入：<br/>
+              <span className="block my-2 bg-gray-100 px-2 py-1 rounded text-xs font-mono text-blue-700 select-all">
+              powershell.exe -Command "Start-Process -FilePath notepad.exe -Verb RunAs -ArgumentList \"$env:SystemRoot\system32\drivers\etc\hosts\""
+              </span>
+            </div>
+            <div className="flex justify-end gap-4">
+              <button
+                className="px-5 py-2 bg-blue-500 text-white rounded-full font-bold hover:bg-blue-600"
+                onClick={() => {
+                  navigator.clipboard.writeText('powershell.exe -Command "Start-Process -FilePath notepad.exe -Verb RunAs -ArgumentList \"$env:SystemRoot\system32\drivers\etc\hosts\""');
+                  toast.success('命令已复制', { duration: TOAST_DURATION });
+                }}
+              >复制命令</button>
+              <button
+                className="px-5 py-2 bg-green-500 text-white rounded-full font-bold hover:bg-blue-400"
+                onClick={() => {
+                  setShowCopyHostsModal(false);
+                  handleCopyHosts();
+                }}
+              >复制hosts</button>
+              <button
+                className="px-5 py-2 bg-gray-100 text-gray-600 rounded-full font-bold hover:bg-gray-200"
+                onClick={() => setShowCopyHostsModal(false)}
+              >取消</button>
             </div>
           </div>
         </div>

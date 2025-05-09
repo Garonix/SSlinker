@@ -75,7 +75,7 @@ npm run dev
 
 ### 1. 拉取镜像
 ```bash
-docker pull izege/sslinker:latest
+docker pull garonix/sslinker:latest
 ```
 
 ### 2. CLI 运行容器
@@ -89,7 +89,7 @@ docker run -d \
   -v $PWD/docker/nginx:/etc/nginx/conf.d \
   -v $PWD/docker/config:/app/backend/config \
   -e PYTHONUNBUFFERED=1 \
-  izege/sslinker:latest
+  garonix/sslinker:latest
 ```
 
 - 证书持久化目录：`./docker/certs` 挂载到容器 `/certs`
@@ -108,16 +108,16 @@ docker run -d \
 ```yaml
 services:
   app:
-    image: izege/sslinker
+    image: garonix/sslinker
     container_name: sslinker
     ports:
       - "8089:8000"
       - "80:80"
       - "443:443"
     volumes:
-      - ./docker/certs:/certs
-      - ./docker/nginx:/etc/nginx/conf.d
-      - ./docker/config:/app/backend/config
+      - ./sslinker/certs:/certs
+      - ./sslinker/nginx:/etc/nginx/conf.d
+      - ./sslinker/config:/app/backend/config
     environment:
       - PYTHONUNBUFFERED=1
     restart: unless-stopped
@@ -159,6 +159,17 @@ http://localhost:8089
 ### 4. CA 导入与 hosts 配置
 - 按照“使用指南”页面指引，将 CA 根证书导入到操作系统或浏览器
 - 添加hosts信息，支持一键复制 hosts 规则，适配多平台
+
+#### 💡 如何快速打开 Windows hosts 文件
+
+1. 按 <b>Win + R</b> 打开“运行”
+2. 输入以下命令并回车：
+
+```powershell
+powershell.exe -Command "Start-Process -FilePath notepad.exe -Verb RunAs -ArgumentList \"$env:SystemRoot\system32\drivers\etc\hosts\""
+```
+
+即可用管理员权限直接编辑 hosts 文件。
 
 ---
 

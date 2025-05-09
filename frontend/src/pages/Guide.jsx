@@ -72,7 +72,9 @@ export default function Guide() {
               修改 hosts 解析
             </h3>
             <ul className="list-disc pl-7 text-base text-gray-800 space-y-1 leading-relaxed">
-              <li><b>Windows：</b> 编辑 <code className="font-semibold text-yellow-700 bg-yellow-100 px-1 rounded">C:\Windows\System32\drivers\etc\hosts</code></li>
+              <li><b>Windows：</b> 编辑 <code className="font-semibold text-yellow-700 bg-yellow-100 px-1 rounded">C:\Windows\System32\drivers\etc\hosts</code><br/>
+<span className="ml-2 text-sm text-yellow-800">快捷打开方法：按 <b>Win + R</b>，输入<br/><code className="font-mono bg-yellow-100 px-1 rounded">powershell.exe -Command "Start-Process -FilePath notepad.exe -Verb RunAs -ArgumentList \"$env:SystemRoot\system32\drivers\etc\hosts\""</code></span>
+</li>
               <li><b>macOS / Linux：</b> 编辑 <code className="font-semibold text-yellow-700 bg-yellow-100 px-1 rounded">/etc/hosts</code></li>
               <li>添加如 <code className="font-semibold text-yellow-700 bg-yellow-100 px-1 rounded">192.168.1.100   test.example.com</code> 以将域名指向本服务。</li>
             </ul>
