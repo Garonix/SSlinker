@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
 import toast from 'react-hot-toast';
+import HostsModal from '../components/HostsModal';
 
 export default function Home() {
+  const [showHostsModal, setShowHostsModal] = useState(false);
+  const [hostsLines, setHostsLines] = useState([]);
   const [proxy, setProxy] = useState(""); // 反代地址 (域名或IP )
   const [origin, setOrigin] = useState(""); // 服务源地址
   const [loading, setLoading] = useState(false);
@@ -59,6 +62,8 @@ export default function Home() {
       setStage("success");
       setTimeout(downloadCA, 300);
       setMsg('success');
+      // 记录 hosts 内容，供后续弹窗用
+      setHostsLines([`${origin.replace(/^https?:\/\//, '')} ${proxy}`]);
     } catch (e) {
       toast.error("操作失败\n请检查输入和服务状态。", { duration: 4000 });
       setMsg("");
@@ -108,7 +113,12 @@ export default function Home() {
             }}
             disabled={loading}
           />
-          {stage === 'success' ? (
+          <HostsModal
+        open={showHostsModal}
+        onClose={() => setShowHostsModal(false)}
+        hostsLines={hostsLines}
+      />
+      {stage === 'success' ? (
             <button
               className={`w-44 h-44 flex items-center justify-center rounded-full text-3xl font-extrabold focus:outline-none transition-all duration-300 shadow-xl
                 ${hover
@@ -122,7 +132,7 @@ export default function Home() {
               }}
               onMouseEnter={() => setHover(true)}
               onMouseLeave={() => setHover(false)}
-              onClick={() => hover && (window.location.href = '/nginx')}
+              onClick={() => setShowHostsModal(true)}
             >
               <span className="flex flex-col items-center gap-2 animate-fade-in">
                 {hover ? (
@@ -134,7 +144,7 @@ export default function Home() {
                     <path d="M7 13l3 3 7-7" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 )}
-                <span className="text-white font-extrabold text-3xl tracking-wide select-none" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>{hover ? '反向代理' : '成功'}</span>
+                <span className="text-white font-extrabold text-3xl tracking-wide select-none" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>{hover ? 'hosts' : '成功'}</span>
               </span>
             </button>
           ) : (

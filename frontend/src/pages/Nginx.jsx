@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import toast, { Toaster } from 'react-hot-toast';
+import HostsModal from '../components/HostsModal';
 
 const TOAST_DURATION = 3000;
 
@@ -36,6 +37,8 @@ export default function Nginx() {
   const [nginxStatus, setNginxStatus] = useState('unknown');
   const [showTooltip, setShowTooltip] = useState(false);
   const [showCopyHostsModal, setShowCopyHostsModal] = useState(false);
+  const [hostsModalLines, setHostsModalLines] = useState([]);
+
 
   useEffect(() => {
     fetch('/api/nginx/status')
@@ -485,6 +488,13 @@ export default function Nginx() {
                   setTimeout(() => setShowTooltip(false), 2500);
                   return;
                 }
+                // 生成当前选中的 hosts
+                const lines = selectedRows.map(sel => {
+                  const cfg = configs.find(c => c.domain === sel);
+                  if (!cfg) return null;
+                  return `${localAddr} ${cfg.domain}`;
+                }).filter(Boolean);
+                setHostsModalLines(lines);
                 setShowCopyHostsModal(true);
               }}
             >打开hosts</button>
@@ -631,39 +641,11 @@ export default function Nginx() {
         </div>
       )}
       {/* hosts复制弹窗 */}
-      {showCopyHostsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-xs animate-nginx-modal">
-            <div className="font-bold text-lg mb-4 text-blue-700">提示</div>
-            <div className="mb-6 text-gray-700 text-base break-words">
-              请按下 <span className="font-bold text-blue-600">windows + R</span> 键打开 <span className="font-bold"><br></br>运行</span> 面板，输入：<br/>
-              <span className="block my-2 bg-gray-100 px-2 py-1 rounded text-xs font-mono text-blue-700 select-all">
-              powershell.exe -Command "Start-Process -FilePath notepad.exe -Verb RunAs -ArgumentList \"$env:SystemRoot\system32\drivers\etc\hosts\""
-              </span>
-            </div>
-            <div className="flex justify-end gap-4">
-              <button
-                className="px-5 py-2 bg-blue-500 text-white rounded-full font-bold hover:bg-blue-600"
-                onClick={() => {
-                  navigator.clipboard.writeText('powershell.exe -Command "Start-Process -FilePath notepad.exe -Verb RunAs -ArgumentList \"$env:SystemRoot\system32\drivers\etc\hosts\""');
-                  toast.success('命令已复制', { duration: TOAST_DURATION });
-                }}
-              >复制命令</button>
-              <button
-                className="px-5 py-2 bg-green-500 text-white rounded-full font-bold hover:bg-blue-400"
-                onClick={() => {
-                  setShowCopyHostsModal(false);
-                  handleCopyHosts();
-                }}
-              >复制hosts</button>
-              <button
-                className="px-5 py-2 bg-gray-100 text-gray-600 rounded-full font-bold hover:bg-gray-200"
-                onClick={() => setShowCopyHostsModal(false)}
-              >取消</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <HostsModal
+        open={showCopyHostsModal}
+        onClose={() => setShowCopyHostsModal(false)}
+        hostsLines={hostsModalLines}
+      />
       {/* 确认弹窗 */}
       {confirmModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
