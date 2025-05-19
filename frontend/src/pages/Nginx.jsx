@@ -114,6 +114,7 @@ export default function Nginx() {
     setForm(f => ({ ...f, [name]: value }));
   };
 
+
   const handleCreate = async () => {
     // 普通证书自动赋值 server_name
     let finalServerName = form.server_name;
@@ -332,7 +333,13 @@ export default function Nginx() {
               </button>
               <button
                 className="px-10 py-3 bg-green-600 text-white rounded-full hover:bg-green-700 font-bold text-xl transition shadow-lg focus:outline-none focus:ring-2 focus:ring-green-300"
-                onClick={() => setShowForm(true)}
+                onClick={() => {
+                  // 只要有本机地址且源地址为空，直接填充 http://localAddr
+                  if (localAddr && !form.proxy_pass) {
+                    setForm(f => ({ ...f, proxy_pass: `http://${localAddr}:` }));
+                  }
+                  setShowForm(true);
+                }}
               >
                 <span className="flex items-center gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">

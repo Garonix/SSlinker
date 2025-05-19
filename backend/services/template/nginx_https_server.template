@@ -17,8 +17,6 @@ server {
         proxy_set_header Connection "upgrade";
         proxy_read_timeout 60s;
     }
-
-    client_max_body_size 2000m;
 }
 
 server {
@@ -47,7 +45,4 @@ server {
         proxy_set_header Connection "upgrade";
         proxy_read_timeout 60s;
     }
-
-    # 可选：限制请求体大小
-    client_max_body_size 2000m;
 }
