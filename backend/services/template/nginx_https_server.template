@@ -1,5 +1,6 @@
 server {
     listen 80;
+    listen [::]:80;
     server_name {{ server_name }};
     # 不强制跳转https，直接允许http访问
 
@@ -22,6 +23,7 @@ server {
 
 server {
     listen 443 ssl;
+    listen [::]:443 ssl;
     server_name {{ server_name }};
     ssl_certificate     /certs/{{ cert_domain }}.crt;
     ssl_certificate_key /certs/{{ cert_domain }}.key;
